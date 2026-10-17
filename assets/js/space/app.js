@@ -304,7 +304,9 @@ function tickLabels() {
 function layout() {
   if (!world || !root.classList.contains("space")) return;
   const w = window.innerWidth, h = window.innerHeight;
-  const r = document.getElementById("content").getBoundingClientRect();
+  // Offsets, not the bounding box: the console may be mid slide-in, and its transform would skew the measure
+  const main = document.getElementById("content");
+  const r = { left: main.offsetLeft, top: main.offsetTop };
   let free;
   if (w > 820 && h > 500) free = { x0: 0, x1: r.left, y0: 70, y1: h - 80 };
   else if (w > h) free = { x0: 0, x1: r.left, y0: 44, y1: h - 50 };
