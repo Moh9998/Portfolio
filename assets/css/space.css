@@ -528,7 +528,7 @@ kbd { font: 12px var(--mono); border: 1px solid var(--line); border-bottom-width
 
 /* Frozen arctic: frosted ice */
 .space.landed[data-biome="arctic"] main {
-  background: linear-gradient(160deg, rgba(190, 225, 255, 0.2), rgba(30, 60, 100, 0.55)); border-color: rgba(220, 240, 255, 0.6);
+  background: linear-gradient(160deg, rgba(70, 110, 160, 0.72), rgba(14, 32, 62, 0.86)); border-color: rgba(220, 240, 255, 0.6);
   box-shadow: 0 20px 60px rgba(0, 20, 50, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 0 40px rgba(190, 230, 255, 0.15);
   backdrop-filter: blur(18px) saturate(1.3);
 }

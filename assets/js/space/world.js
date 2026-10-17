@@ -578,7 +578,9 @@ export class World {
     p.body.updateMatrixWorld();
     const m = tmpM.multiplyMatrices(p.body.matrixWorld, s.frame);
     const at = (x, y, z, v) => v.set(x * R, y * R, z * R).applyMatrix4(m);
-    at(0, 0.075, -0.17, out.pos);
+    // Tall, narrow screens (phones) step the camera back and up so the whole site fits across
+    const narrow = THREE.MathUtils.clamp((1.2 - this.width / this.height) / 0.75, 0, 1);
+    at(0, 0.075 + 0.05 * narrow, -0.17 - 0.13 * narrow, out.pos);
     at(0, 0.02, 0.06, out.look);
     out.up.setFromMatrixColumn(m, 1).normalize();
     out.north.setFromMatrixColumn(m, 2).normalize();
@@ -952,7 +954,9 @@ export class World {
     }
 
     this.camera.lookAt(this.camLook);
-    this.camera.fov = 50 + warp * 18 + this.diveFov;
+    const wide = this.site ? THREE.MathUtils.clamp((1.2 - this.width / this.height) / 0.75, 0, 1) * 12 : 0;
+    this.siteFov = (this.siteFov || 0) + (wide - (this.siteFov || 0)) * (this.reducedMotion ? 1 : 1 - Math.exp(-dt * 3));
+    this.camera.fov = 50 + warp * 18 + this.diveFov + this.siteFov;
     this.updateProps(dt);
     // Clouds thin out as the camera drops through them
     if (this.current) {
