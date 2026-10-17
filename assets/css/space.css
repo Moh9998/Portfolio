@@ -356,3 +356,13 @@ kbd { font: 12px var(--mono); border: 1px solid var(--line); border-bottom-width
 .space.tight .dpad { display: none; }
 .space.tight .panel-controls { justify-content: space-between; }
 .space.tight .panel-controls .hud-btn { display: inline-block; padding: 4px 14px; font-size: 13px; }
+
+/* Typing on a phone: the keyboard shrinks the viewport, so the console takes the whole screen
+   instead of the layout flipping to landscape */
+.space.kb main {
+  top: 8px; bottom: 8px; left: 8px; right: 8px; width: auto; max-height: none;
+  transform: none; opacity: 1; pointer-events: auto;
+}
+.space.kb .system-nav, .space.kb .dpad, .space.kb .hud-brand, .space.kb .hud-tools, .space.kb #labels, .space.kb #warp { display: none; }
+.space.kb .contact-form textarea { height: 72px; }
+.space.kb .form-note { display: none; }

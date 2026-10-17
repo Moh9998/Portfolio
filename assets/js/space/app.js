@@ -288,6 +288,17 @@ window.addEventListener("keydown", (e) => {
   else if (/^[1-9]$/.test(e.key) && planets[+e.key - 1]) go(planets[+e.key - 1].id, 0);
 });
 
+// While typing on a touch screen, give the form the whole screen
+const isField = (el) => el && el.matches && el.matches("#content input, #content textarea");
+document.addEventListener("focusin", (e) => {
+  if (!root.classList.contains("space") || !isField(e.target) || !matchMedia("(pointer: coarse), (max-width: 820px)").matches) return;
+  root.classList.add("kb");
+  setTimeout(() => e.target.scrollIntoView({ block: "center" }), 300);
+});
+document.addEventListener("focusout", () => {
+  setTimeout(() => { if (!isField(document.activeElement)) root.classList.remove("kb"); }, 100);
+});
+
 window.addEventListener("resize", layout);
 if (window.ResizeObserver) new ResizeObserver(layout).observe(document.getElementById("content"));
 
