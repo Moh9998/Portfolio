@@ -111,7 +111,30 @@ function showPlanet(planetId, index) {
   document.getElementById("panel-controls").hidden = false;
   document.title = `${p.continents[index].name} · ${p.name} · Mohammed Hussain`;
   document.getElementById("content").scrollTop = 0;
+  reveal(p.continents[index].el);
   layout();
+}
+
+// Items in a section arrive one after another; numbers count up
+function reveal(el) {
+  el.querySelectorAll("h3, .hero-name, .hero-roles, p, li, .facts > div, .profile img, .contact-form > *").forEach((n, i) => {
+    n.style.setProperty("--i", i);
+    n.classList.add("rv");
+  });
+  if (reducedMotion) return;
+  el.querySelectorAll(".stats strong").forEach((s) => {
+    const target = parseInt(s.dataset.value || s.textContent, 10);
+    const suffix = s.dataset.suffix ?? s.textContent.replace(/^\d+/, "");
+    s.dataset.value = target;
+    s.dataset.suffix = suffix;
+    const t0 = performance.now();
+    const tick = (now) => {
+      const k = Math.min((now - t0) / 900, 1);
+      s.textContent = Math.round(target * (1 - Math.pow(1 - k, 3))) + suffix;
+      if (k < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
 }
 
 function go(planetId, index) {
@@ -297,6 +320,13 @@ document.addEventListener("focusin", (e) => {
 });
 document.addEventListener("focusout", () => {
   setTimeout(() => { if (!isField(document.activeElement)) root.classList.remove("kb"); }, 100);
+});
+
+// Save battery: stop rendering while the tab is in the background
+document.addEventListener("visibilitychange", () => {
+  if (!world || !root.classList.contains("space")) return;
+  if (document.hidden) world.stop();
+  else { world.clock.getDelta(); world.start(); }
 });
 
 window.addEventListener("resize", layout);

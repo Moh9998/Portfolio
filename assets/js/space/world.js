@@ -6,7 +6,7 @@ import { planetShader, cloudShader, atmosphereShader, sunShader, nebulaShader, M
 export const PLANET_LOOKS = {
   home: {
     radius: 11, orbit: 70, angle: 0.4, y: 4, seed: 1.3, tilt: 0.25,
-    ocean: "#1b6ca8", deep: "#071c3d", glow: "#6ee7ff", atmosphere: "#7cc8ff", clouds: 0.0,
+    moons: 1, ocean: "#1b6ca8", deep: "#071c3d", glow: "#6ee7ff", atmosphere: "#7cc8ff", clouds: 0.0,
     continents: ["#5fbf6a", "#d9b56b", "#9bd16a"],
   },
   about: {
@@ -16,7 +16,7 @@ export const PLANET_LOOKS = {
   },
   skills: {
     radius: 14, orbit: 150, angle: 3.15, y: 8, seed: 8.1, tilt: 0.15, ring: "#f6ad55",
-    ocean: "#2a6b5f", deep: "#082320", glow: "#ffd27a", atmosphere: "#ffd59a", clouds: -0.15,
+    moons: 2, ocean: "#2a6b5f", deep: "#082320", glow: "#ffd27a", atmosphere: "#ffd59a", clouds: -0.15,
     continents: ["#d98a3d", "#58c4a8", "#4b7bd6", "#a8a35a", "#d1503f"],
   },
   resume: {
@@ -26,7 +26,7 @@ export const PLANET_LOOKS = {
   },
   contact: {
     radius: 10, orbit: 232, angle: 5.7, y: 5, seed: 6.6, tilt: 0.35, ring: "#9ad0ff",
-    ocean: "#11507a", deep: "#03142a", glow: "#a8e6ff", atmosphere: "#63b3ed", clouds: 0.05,
+    moons: 1, ocean: "#11507a", deep: "#03142a", glow: "#a8e6ff", atmosphere: "#63b3ed", clouds: 0.05,
     continents: ["#cfe8ff", "#7fe0b8", "#f2c46d"],
   },
 };
@@ -73,7 +73,11 @@ export class World {
     this.canvas = canvas;
     this.reducedMotion = reducedMotion;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // Phones start at a lower resolution; adaptQuality() lowers it further if frames run slow
+    this.maxDpr = Math.min(window.devicePixelRatio, window.innerWidth < 820 ? 1.5 : 2);
+    this.dpr = this.maxDpr;
+    this.renderer.setPixelRatio(this.dpr);
+    this.frameAvg = 16;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     this.scene = new THREE.Scene();
@@ -94,6 +98,10 @@ export class World {
     this.buildSun();
     planetsData.forEach((p) => this.buildPlanet(p));
     this.buildShip();
+    this.buildBelt();
+    this.buildWarp();
+    this.buildPulse();
+    this.introT = reducedMotion ? 10 : 0;
 
     // Opening shot: wide view of the system, ship coming in from deep space
     this.ship.position.set(-80, 70, 360);
@@ -124,10 +132,21 @@ export class World {
       c.setHSL(0.55 + Math.random() * 0.2 - (Math.random() < 0.2 ? 0.5 : 0), 0.6, 0.75 + Math.random() * 0.25);
       col.set([c.r, c.g, c.b], i * 3);
     }
+    const phase = new Float32Array(count);
+    for (let i = 0; i < count; i++) phase[i] = Math.random() * 100;
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
     g.setAttribute("color", new THREE.BufferAttribute(col, 3));
-    this.stars = new THREE.Points(g, new THREE.PointsMaterial({ size: 2.2, sizeAttenuation: false, vertexColors: true, transparent: true, opacity: 0.9, depthWrite: false }));
+    g.setAttribute("phase", new THREE.BufferAttribute(phase, 1));
+    this.starUniforms = { uTime: { value: 0 }, uScale: { value: this.dpr } };
+    this.stars = new THREE.Points(g, new THREE.ShaderMaterial({
+      uniforms: this.starUniforms, transparent: true, depthWrite: false, vertexColors: true,
+      vertexShader: `attribute float phase; uniform float uTime; uniform float uScale; varying vec3 vC; varying float vA;
+        void main(){ vC = color; vA = 0.55 + 0.45 * sin(uTime * (0.6 + fract(phase) * 2.2) + phase);
+          gl_PointSize = (1.4 + fract(phase * 7.3) * 1.6) * uScale; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      fragmentShader: `varying vec3 vC; varying float vA;
+        void main(){ float d = length(gl_PointCoord - 0.5); gl_FragColor = vec4(vC, vA * smoothstep(0.5, 0.15, d)); }`,
+    }));
     this.scene.add(this.stars);
 
     // Dust that streaks past during warp
@@ -149,6 +168,7 @@ export class World {
     const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture("rgba(255,230,170,1)", "rgba(255,140,40,0.35)"), blending: THREE.AdditiveBlending, depthWrite: false }));
     glow.scale.setScalar(140);
     this.scene.add(glow);
+    this.sunGlow = glow;
     const light = new THREE.PointLight(0xfff1dd, 3, 0, 0);
     this.scene.add(light);
   }
@@ -217,11 +237,26 @@ export class World {
     const orbit = new THREE.Line(new THREE.BufferGeometry().setFromPoints(orbitPts), new THREE.LineBasicMaterial({ color: look.glow, transparent: true, opacity: 0.12 }));
     this.scene.add(orbit);
 
+    // Moons
+    const moons = [];
+    for (let i = 0; i < (look.moons || 0); i++) {
+      const m = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(look.radius * (0.12 + i * 0.05), 2),
+        new THREE.MeshStandardMaterial({ color: i ? 0xc9b8a6 : 0xb8c4d9, roughness: 0.9, flatShading: true })
+      );
+      const pivot = new THREE.Group();
+      pivot.rotation.set(0.35 + i * 0.5, 0, 0.2 - i * 0.4);
+      m.position.x = look.radius * (2.5 + i * 0.7);
+      pivot.add(m);
+      group.add(pivot);
+      moons.push({ pivot, mesh: m, speed: 0.25 / (1 + i) });
+    }
+
     body.quaternion.setFromEuler(new THREE.Euler(look.tilt, look.seed, 0));
 
     this.planets.set(data.id, {
       ...data, look, group, body, mesh, clouds, uniforms, cloudUniforms, centers,
-      targetQuat: body.quaternion.clone(), free: false, spin: 0.02,
+      targetQuat: body.quaternion.clone(), free: false, spin: 0.02, moons, atmo,
     });
   }
 
@@ -264,6 +299,14 @@ export class World {
     this.flame.scale.setScalar(1.6);
     ship.add(this.flame);
 
+    // Inner group so the ship can bank into turns without fighting lookAt
+    const hullGroup = new THREE.Group();
+    while (ship.children.length) hullGroup.add(ship.children[0]);
+    ship.add(hullGroup);
+    this.hull = hullGroup;
+    this.bank = 0;
+    this.prevTangent = new THREE.Vector3(0, 0, 1);
+
     ship.scale.setScalar(0.9);
     this.scene.add(ship);
     this.ship = ship;
@@ -284,6 +327,92 @@ export class World {
     this.trail.frustumCulled = false;
     this.scene.add(this.trail);
     this.trailInit = false;
+  }
+
+  // Asteroid belt on the edge of the system, past Beacon
+  buildBelt() {
+    const n = window.innerWidth < 820 ? 260 : 520;
+    const rocks = new THREE.InstancedMesh(
+      new THREE.IcosahedronGeometry(1, 0),
+      new THREE.MeshStandardMaterial({ color: 0x8a8070, roughness: 1, flatShading: true }),
+      n
+    );
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3();
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = 270 + (Math.random() - 0.5) * 18;
+      p.set(Math.cos(a) * r, (Math.random() - 0.5) * 4, Math.sin(a) * r);
+      q.setFromEuler(new THREE.Euler(Math.random() * 6, Math.random() * 6, Math.random() * 6));
+      sc.set(1, 0.7 + Math.random() * 0.6, 0.8 + Math.random() * 0.4).multiplyScalar(0.25 + Math.random() ** 3 * 1.4);
+      rocks.setMatrixAt(i, m.compose(p, q, sc));
+    }
+    this.belt = rocks;
+    this.scene.add(rocks);
+  }
+
+  // Hyperspace streaks that ride with the camera during a jump
+  buildWarp() {
+    const n = 160;
+    this.streaks = [];
+    const pos = new Float32Array(n * 6);
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, r = 12 + Math.random() * 40;
+      this.streaks.push({ x: Math.cos(a) * r, y: Math.sin(a) * r, z: -Math.random() * 260, v: 0.6 + Math.random() * 0.8 });
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    this.warpLines = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0xa9e8ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+    this.warpLines.frustumCulled = false;
+    this.camera.add(this.warpLines);
+    this.scene.add(this.camera);
+  }
+
+  // Shockwave ring when the ship arrives at a planet
+  buildPulse() {
+    this.pulse = new THREE.Mesh(
+      new THREE.RingGeometry(0.96, 1, 96),
+      new THREE.MeshBasicMaterial({ color: 0x9fe9ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false })
+    );
+    this.pulseT = 1;
+    this.scene.add(this.pulse);
+  }
+
+  firePulse(id) {
+    const p = this.planets.get(id);
+    this.pulse.position.copy(p.group.position);
+    this.pulse.material.color.set(p.look.glow);
+    this.pulseR = p.look.radius;
+    this.pulseT = 0;
+  }
+
+  updateWarp(warp, dt) {
+    const a = this.warpLines.geometry.attributes.position.array;
+    const len = 2 + warp * 60;
+    this.streaks.forEach((s, i) => {
+      s.z += dt * s.v * (60 + warp * 900);
+      if (s.z > 0) s.z -= 260;
+      a.set([s.x, s.y, s.z, s.x, s.y, s.z - len * s.v], i * 6);
+    });
+    this.warpLines.geometry.attributes.position.needsUpdate = true;
+    this.warpLines.material.opacity = Math.min(warp * 0.8, 0.5);
+    this.warpLines.visible = warp > 0.01;
+  }
+
+  // Drop resolution while frames run slow, raise it back when there is headroom
+  adaptQuality(raw) {
+    this.frameAvg += (raw * 1000 - this.frameAvg) * 0.05;
+    this.qualityT = (this.qualityT || 0) + raw;
+    if (this.qualityT < 2) return;
+    this.qualityT = 0;
+    let next = this.dpr;
+    if (this.frameAvg > 24 && this.dpr > 0.75) next = Math.max(0.75, this.dpr - 0.25);
+    else if (this.frameAvg < 13 && this.dpr < this.maxDpr) next = Math.min(this.maxDpr, this.dpr + 0.25);
+    if (next !== this.dpr) {
+      this.dpr = next;
+      this.renderer.setPixelRatio(next);
+      this.renderer.setSize(this.width, this.height, false);
+      this.starUniforms.uScale.value = next;
+    }
   }
 
   // ---------- geometry helpers ----------
@@ -360,6 +489,7 @@ export class World {
     const prev = this.current;
     this.current = null;
 
+    this.prevTangent.copy(curve.getTangentAt(0)).normalize();
     const duration = this.reducedMotion ? 0 : Math.min(2.4 + dist * 0.008, first ? 5.2 : 4.6);
     this.travel = {
       to: id, prev, curve, t: 0, duration,
@@ -453,7 +583,7 @@ export class World {
       p.cloudUniforms.uTime.value = T;
       p.clouds.rotation.y += dt * 0.01;
       if (p.id === this.current && !p.free) {
-        p.body.quaternion.slerp(p.targetQuat, 1 - Math.exp(-dt * 3.2));
+        p.body.quaternion.slerp(p.targetQuat, 1 - Math.exp(-dt * 2.6));
       } else if (p.id !== this.current && !this.reducedMotion) {
         p.body.rotateY(dt * p.spin);
       }
@@ -464,10 +594,14 @@ export class World {
       const tr = this.travel;
       tr.t = tr.duration > 0 ? Math.min(tr.t + Math.min(raw, 0.25) / tr.duration, 1) : 1;
       const e = easeInOut(tr.t);
-      const shipPos = tr.curve.getPoint(e);
-      const tangent = tr.curve.getTangent(Math.min(e, 0.999)).normalize();
+      // Arc-length sampling keeps the speed even along the whole route
+      const shipPos = tr.curve.getPointAt(e);
+      const tangent = tr.curve.getTangentAt(Math.min(e, 0.999)).normalize();
       this.ship.position.copy(shipPos);
       this.ship.lookAt(tmpV.copy(shipPos).add(tangent));
+      const turn = tmpV2.crossVectors(this.prevTangent, tangent).y / Math.max(dt, 1e-3);
+      this.bank += (THREE.MathUtils.clamp(-turn * 0.9, -0.9, 0.9) - this.bank) * (1 - Math.exp(-dt * 4));
+      this.prevTangent.copy(tangent);
 
       const chasePos = shipPos.clone().addScaledVector(tangent, -15).addScaledVector(UP, 4.5);
       const chaseLook = shipPos.clone().addScaledVector(tangent, 12);
@@ -483,6 +617,7 @@ export class World {
         this.camera.position.copy(tr.end.pos);
         this.camLook.copy(tr.end.look);
         this.parkT = 0;
+        if (!this.reducedMotion) this.firePulse(tr.to);
         tr.resolve();
         if (this.onArrive) this.onArrive(tr.to);
       }
@@ -491,7 +626,9 @@ export class World {
       this.parkT = (this.parkT || 0) + (this.reducedMotion ? 0 : dt);
       const prev = this.ship.position.clone();
       this.shipParking(this.current, this.parkT, this.ship.position);
+      if (!this.reducedMotion) this.ship.position.y += Math.sin(T * 1.7) * 0.12;
       if (this.parkT > 0) this.ship.lookAt(tmpV.copy(this.ship.position).multiplyScalar(2).sub(prev));
+      this.bank += (-0.25 - this.bank) * (1 - Math.exp(-dt * 2));
       const pose = this.viewPose(this.current);
       const bob = this.reducedMotion ? 0 : Math.sin(T * 0.3) * 0.4;
       pose.pos.addScaledVector(UP, bob);
@@ -520,6 +657,33 @@ export class World {
     this.flame.scale.setScalar(1.2 + thrust * 1.6 + Math.sin(T * 40) * 0.1);
     this.dust.material.opacity = 0.15 + warp * 0.7;
     this.dust.position.copy(this.ship.position);
+
+    this.hull.rotation.z = this.bank;
+    this.starUniforms.uTime.value = T;
+    if (!this.reducedMotion) {
+      this.sunGlow.scale.setScalar(140 + Math.sin(T * 0.8) * 6 + Math.sin(T * 2.3) * 2);
+      this.belt.rotation.y += dt * 0.006;
+      this.planets.forEach((p) => p.moons.forEach((m) => { m.pivot.rotation.y += dt * m.speed; m.mesh.rotation.y += dt * 0.3; }));
+    }
+    // Planets drift into view one after another on first load
+    if (this.introT < 10) {
+      this.introT += dt;
+      let i = 0;
+      this.planets.forEach((p) => {
+        const t = smooth(0.2 + i * 0.25, 1.4 + i * 0.25, this.introT);
+        p.group.scale.setScalar(0.001 + t * 0.999);
+        i++;
+      });
+    }
+    if (this.pulseT < 1) {
+      this.pulseT = Math.min(this.pulseT + dt / 1.4, 1);
+      const e = 1 - Math.pow(1 - this.pulseT, 3);
+      this.pulse.scale.setScalar(this.pulseR * (1.1 + e * 0.8));
+      this.pulse.material.opacity = (1 - this.pulseT) * 0.5;
+      this.pulse.lookAt(this.camera.position);
+    }
+    this.updateWarp(warp, dt);
+    this.adaptQuality(raw);
 
     this.updateTrail();
     this.renderer.render(this.scene, this.camera);

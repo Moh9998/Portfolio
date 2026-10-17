@@ -366,3 +366,53 @@ kbd { font: 12px var(--mono); border: 1px solid var(--line); border-bottom-width
 .space.kb .system-nav, .space.kb .dpad, .space.kb .hud-brand, .space.kb .hud-tools, .space.kb #labels, .space.kb #warp { display: none; }
 .space.kb .contact-form textarea { height: 72px; }
 .space.kb .form-note { display: none; }
+
+/* ==========================================================
+   MOTION
+   ========================================================== */
+@media (prefers-reduced-motion: no-preference) {
+  /* HUD glides in once the system has loaded */
+  .space:not(.booting) .hud-brand { animation: hud-left 0.9s 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .space:not(.booting) .hud-tools { animation: hud-right 0.9s 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .space:not(.booting) .system-nav { animation: hud-up 0.9s 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .space:not(.booting) .dpad { animation: hud-fade 0.9s 0.8s ease both; }
+  @keyframes hud-left { from { opacity: 0; translate: -24px 0; } }
+  @keyframes hud-right { from { opacity: 0; translate: 24px 0; } }
+  @keyframes hud-up { from { opacity: 0; translate: 0 24px; } }
+  @keyframes hud-fade { from { opacity: 0; } }
+
+  /* Console: smoother entrance, heading and items arrive in sequence */
+  .space main { transition: opacity 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .space .planet.is-active .planet-head > * { animation: rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .space .planet.is-active .planet-head > :nth-child(2) { animation-delay: 0.06s; }
+  .space .planet.is-active .planet-head > :nth-child(3) { animation-delay: 0.12s; }
+  .space .continent.is-active { animation: none; }
+  .space .continent.is-active .rv { animation: rise 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; animation-delay: calc(var(--i, 0) * 45ms + 80ms); }
+  .space .continent.is-active .chips li.rv { animation-name: chip-pop; }
+  @keyframes chip-pop { from { opacity: 0; transform: translateY(6px) scale(0.85); } }
+
+  /* Tactile feedback */
+  .hud-btn, .system-nav a, .continent-tabs a, .contact-form button, .chips li, .stats li {
+    transition: transform 0.18s ease, background 0.25s ease, color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+  .hud-btn:active, .system-nav a:active, .continent-tabs a:active, .contact-form button:active { transform: scale(0.94); }
+  .chips li:hover, .stats li:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: 0 6px 18px rgba(110, 231, 255, 0.12); }
+  .contact-form button:hover { box-shadow: 0 0 0 4px rgba(110, 231, 255, 0.18); }
+  .space .system-nav a[aria-current="true"] .dot { animation: beacon 2s ease-in-out infinite; }
+  @keyframes beacon { 50% { box-shadow: 0 0 2px var(--planet-color), 0 0 14px 3px var(--planet-color); } }
+
+  /* Labels pop in and out instead of blinking */
+  .label { transition: opacity 0.35s ease, scale 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.2s, border-color 0.2s; scale: 1; }
+  .label.hidden { scale: 0.8; }
+  .label.active::after {
+    content: ""; position: absolute; inset: -4px; border-radius: inherit; border: 1px solid var(--accent);
+    animation: ping 1.8s ease-out infinite;
+  }
+  @keyframes ping { from { opacity: 0.8; transform: scale(0.95); } to { opacity: 0; transform: scale(1.25); } }
+
+  /* Warp caption flickers like a ship display */
+  .space.traveling #warp-text { animation: flicker 1.2s steps(2) infinite; }
+  @keyframes flicker { 50% { opacity: 0.7; } }
+  .typed { animation: caret 1s steps(1) infinite; }
+  @keyframes caret { 50% { border-right-color: transparent; } }
+}
