@@ -200,7 +200,7 @@ function layout() {
   const cx = (free.x0 + free.x1) / 2, cy = (free.y0 + free.y1) / 2;
   const size = Math.max(110, Math.min(free.x1 - free.x0, free.y1 - free.y0) * (w > 820 && h > 500 ? 0.74 : 0.86));
   world.setFrame(w / 2 - cx, h / 2 - cy, size);
-  root.style.setProperty("--sheet-top", r.top + "px");
+  root.style.setProperty("--sheet-gap", (h - r.top) + "px");
   root.classList.toggle("tight", free.y1 - free.y0 < 150);
 }
 

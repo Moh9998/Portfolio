@@ -272,7 +272,7 @@ kbd { font: 12px var(--mono); border: 1px solid var(--line); border-bottom-width
   .space .panel-controls .hud-btn { display: none; }
   .space #continent-count { font-size: 10px; }
 
-  .space .dpad { display: grid; left: auto; right: 10px; --pad: 38px; top: calc((56px + var(--sheet-top, 60vh)) / 2); bottom: auto; transform: translateY(-50%); }
+  .space .dpad { display: grid; left: auto; right: 10px; --pad: 38px; top: auto; bottom: calc(var(--sheet-gap, 40vh) + 8px); transform: none; }
   .space .label.planet-label { display: none; }
   #warp-text { font-size: 11px; letter-spacing: 0.22em; margin-top: 12vh; }
 }
