@@ -616,7 +616,61 @@ export class World {
     p.body.add(props.group);
     this.site.props = props;
     if (old && old.props) this.retire(old.props);
-    return this.startSurf("land", hop ? p.look.radius * 0.9 : 0, hop ? 3.2 : 3.4);
+    if (!hop) return this.startSurf("land", 0, 3.4);
+    // Site to site: skim low over the surface along the great circle between them
+    const n0 = new THREE.Vector3().setFromMatrixPosition(old.frame).normalize();
+    const n1 = new THREE.Vector3().setFromMatrixPosition(this.site.frame).normalize();
+    const angle = n0.angleTo(n1);
+    const out = this.startSurf("hop", 0, Math.min(2.2 + angle * 1.8, 5.5));
+    // Hold the starting pose in the planet's space too, so blending out of it never cuts through the ground
+    p.body.updateMatrixWorld();
+    const inv = tmpM.copy(p.body.matrixWorld).invert();
+    const f = this.surf.from;
+    f.localPos = f.pos.clone().applyMatrix4(inv);
+    f.localLook = f.look.clone().applyMatrix4(inv);
+    f.localShip = f.ship.clone().applyMatrix4(inv);
+    Object.assign(this.surf, {
+      n0, n1, angle,
+      cruise: 0.02 + angle * 0.03,
+      q0: new THREE.Quaternion().setFromRotationMatrix(old.frame),
+      q1: new THREE.Quaternion().setFromRotationMatrix(this.site.frame),
+    });
+    return out;
+  }
+
+  // Ship and chase camera for a surface hop, in world space for this frame.
+  // The path is built in the planet's own space, so the planet can turn underneath without disturbing it.
+  hopPose(s, p, out) {
+    const R = p.look.radius, e = easeInOut(s.t), Om = s.angle;
+    const n = out.n || (out.n = new THREE.Vector3());
+    const fwd = out.fwd || (out.fwd = new THREE.Vector3());
+    if (Om > 1e-3) {
+      const so = Math.sin(Om);
+      n.copy(s.n0).multiplyScalar(Math.sin((1 - e) * Om) / so).addScaledVector(s.n1, Math.sin(e * Om) / so);
+      fwd.copy(s.n0).multiplyScalar(-Math.cos((1 - e) * Om)).addScaledVector(s.n1, Math.cos(e * Om)).normalize();
+    } else {
+      n.copy(s.n1);
+      fwd.set(0, 0, 1).applyQuaternion(s.q1);
+    }
+    // Heading: turn from the old pad's facing onto the route, then onto the new pad's facing
+    const travel = tmpQ.setFromRotationMatrix(tmpM2.makeBasis(tmpV.crossVectors(n, fwd), n, fwd));
+    const q = out.q || (out.q = new THREE.Quaternion());
+    q.slerpQuaternions(s.q0, travel, smooth(0, 0.2, s.t)).slerp(s.q1, smooth(0.8, 1, s.t));
+
+    // Climb to a low cruise and settle back onto the pad
+    const alt = R * (0.006 + Math.sin(Math.PI * e) * s.cruise);
+    const local = tmpV2.copy(n).multiplyScalar(R + alt);
+    p.body.updateMatrixWorld();
+    const m = p.body.matrixWorld;
+    const at = (x, y, z, v) => v.set(x * R, y * R, z * R).applyQuaternion(q).add(local).applyMatrix4(m);
+    at(0, 0, 0, out.ship);
+    at(0, 0.069, -0.17, out.pos);
+    at(0, 0.014, 0.06, out.look);
+    const bodyQ = p.body.getWorldQuaternion(out.worldQ || (out.worldQ = new THREE.Quaternion()));
+    out.shipQuat.copy(bodyQ).multiply(q);
+    out.up.set(0, 1, 0).applyQuaternion(out.shipQuat);
+    out.shipScale = R * 0.011;
+    return out;
   }
 
   takeOff() {
@@ -661,6 +715,29 @@ export class World {
     const p = this.planets.get(this.current);
     const s = this.surf;
     const pose = this.pose;
+    if (s && s.kind === "hop") {
+      s.t = s.duration > 0 ? Math.min(s.t + Math.min(raw, 0.25) / s.duration, 1) : 1;
+      this.hopPose(s, p, pose);
+      // Ease out of the resting sway, then ride behind the ship
+      const w = smooth(0, 0.12, s.t);
+      const m = p.body.matrixWorld;
+      this.camera.position.lerpVectors(tmpV.copy(s.from.localPos).applyMatrix4(m), pose.pos, w);
+      this.camLook.lerpVectors(tmpV.copy(s.from.localLook).applyMatrix4(m), pose.look, w);
+      this.camera.up.lerpVectors(s.from.up, pose.up, w).normalize();
+      this.ship.position.lerpVectors(tmpV.copy(s.from.localShip).applyMatrix4(m), pose.ship, w);
+      this.ship.quaternion.slerpQuaternions(s.from.shipQuat, pose.shipQuat, w);
+      this.ship.scale.setScalar(pose.shipScale);
+      // Lean into the turns at both ends of the route
+      this.bank += (Math.sin(Math.PI * smooth(0, 0.25, s.t)) * 0.35 - Math.sin(Math.PI * smooth(0.75, 1, s.t)) * 0.35 - this.bank) * (1 - Math.exp(-dt * 5));
+      if (this.site && this.site.props) this.site.props.grow = smooth(0.7, 1, s.t);
+      if (s.t >= 1) {
+        this.surf = null;
+        if (!this.reducedMotion) this.fireTouchdown(pose.ship, pose.up, p.look.radius * 0.022, "#ffe2b0");
+        s.resolve();
+      }
+      if (this.site && this.site.boards) tickBoards(this.site.boards, T);
+      return;
+    }
     if (s) {
       s.t = s.duration > 0 ? Math.min(s.t + Math.min(raw, 0.25) / s.duration, 1) : 1;
       if (s.kind === "land") this.sitePose(pose); else this.orbitPose(pose);
