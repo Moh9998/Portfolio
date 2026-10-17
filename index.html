@@ -4,550 +4,312 @@
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>Mohammed Hussain Portifolio</title>
-  <meta content="" name="description">
-  <meta content="" name="keywords">
+  <title>Mohammed Hussain · Portfolio</title>
+  <meta name="description" content="Mohammed Hussain Abbas, software developer from Baghdad. Fly a ship through a foreign solar system where every planet is a page of the portfolio.">
+  <meta name="theme-color" content="#05060f">
 
-  <!-- Favicons -->
   <link href="assets/img/favicon.png" rel="icon">
   <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
 
-  <!-- Fonts -->
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 
-  <!-- Vendor CSS Files -->
-  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
-  <link href="assets/vendor/aos/aos.css" rel="stylesheet">
-  <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
-  <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+  <link href="assets/css/space.css" rel="stylesheet">
 
-  <!-- Main CSS File -->
-  <link href="assets/css/main.css" rel="stylesheet">
+  <script>
+    // Hide the classic layout before first paint when the space view is going to load
+    (function () {
+      try {
+        var pref = localStorage.getItem("portfolio-view");
+        var calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+        var gl = !!(window.WebGL2RenderingContext && document.createElement("canvas").getContext("webgl2"));
+        if (gl && "noModule" in HTMLScriptElement.prototype && (pref === "space" || (!calm && pref !== "classic"))) {
+          document.documentElement.classList.add("space", "booting");
+        }
+      } catch (e) { /* storage blocked: stay classic until the app decides */ }
+    })();
+  </script>
 
-  <!-- =======================================================
-  * Template Name: iPortfolio
-  * Template URL: https://bootstrapmade.com/iportfolio-bootstrap-portfolio-websites-template/
-  * Updated: Jun 29 2024 with Bootstrap v5.3.3
-  * Author: BootstrapMade.com
-  * License: https://bootstrapmade.com/license/
-  ======================================================== -->
+  <script type="importmap">
+    { "imports": { "three": "./assets/vendor/three/three.module.min.js" } }
+  </script>
 </head>
 
-<body class="starter-page-page">
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
 
-  <header id="header" class="header dark-background d-flex flex-column">
-    <i class="header-toggle d-xl-none bi bi-list"></i>
+  <canvas id="universe" aria-hidden="true"></canvas>
+  <div id="labels" aria-hidden="true"></div>
+  <div id="warp" aria-hidden="true"><span id="warp-text"></span></div>
 
-    <div class="profile-img">
-      <img src="assets/img/MyProfile.jpg" alt="" class="img-fluid rounded-circle">
+  <header class="hud-brand">
+    <img src="assets/img/MyProfile.jpg" alt="" width="44" height="44">
+    <div>
+      <p class="brand-name">Mohammed Hussain</p>
+      <p class="brand-role">Software Developer</p>
     </div>
-
-    <a href="index.html" class="logo d-flex align-items-center justify-content-center">
-      <!-- Uncomment the line below if you also wish to use an image logo -->
-      <!-- <img src="assets/img/logo.png" alt=""> -->
-      <h1 class="sitename">Mohammed Hussain</h1>
-    </a>
-    <p 
-    style="
-    margin-left: 1rem;
-    font-size: 13px;">
-      Software Developer
-    </p>
-
-    <nav id="navmenu" class="navmenu">
-      <ul>
-        <li><a href="#hero"><i class="bi bi-house navicon"></i>Home</a></li>
-        <li><a href="#about"><i class="bi bi-person navicon"></i> About</a></li>
-        <li><a href="#resume"><i class="bi bi-file-earmark-text navicon"></i> Resume</a></li>
-      
-        <li><a href="#contact"><i class="bi bi-envelope navicon"></i> Contact</a></li>
-      </ul>
-    </nav>
-
   </header>
 
-  <main class="main">
+  <div class="hud-tools">
+    <button type="button" id="view-toggle" class="hud-btn" hidden>Classic view</button>
+  </div>
 
-    <!-- Hero Section -->
-    <section id="hero" class="hero section dark-background">
-      <div class="three">
-        <canvas id="canvas"></canvas>
-      </div>
-      <div class="container" data-aos="fade-up" data-aos-delay="100">
-        <h2>Mohammed Hussain Abbas</h2>
-        <p>
-          I'm
-          <span class="typed" data-typed-items="Software Developer , Game Developer ,Game Desginer, Software Desginer , Full Stack Developer ">Software Developer</span>
-          <span class="typed-cursor typed-cursor--blink" aria-hidden="true"></span>
-        </p>
-      </div>
+  <nav class="system-nav" aria-label="Planets">
+    <ol id="planet-list">
+      <li><a href="#home" data-planet="home"><span class="dot"></span><span class="pname">Nova Baghdad</span><span class="plabel">Home</span></a></li>
+      <li><a href="#about" data-planet="about"><span class="dot"></span><span class="pname">Persona</span><span class="plabel">About</span></a></li>
+      <li><a href="#skills" data-planet="skills"><span class="dot"></span><span class="pname">Arsenal</span><span class="plabel">Skills</span></a></li>
+      <li><a href="#resume" data-planet="resume"><span class="dot"></span><span class="pname">Chronos</span><span class="plabel">Resume</span></a></li>
+      <li><a href="#contact" data-planet="contact"><span class="dot"></span><span class="pname">Beacon</span><span class="plabel">Contact</span></a></li>
+    </ol>
+  </nav>
+
+  <div class="dpad" id="dpad" role="group" aria-label="Ship controls">
+    <button type="button" data-steer="up" aria-label="Previous planet">▲</button>
+    <button type="button" data-steer="left" aria-label="Previous continent">◀</button>
+    <span class="dpad-core" aria-hidden="true"></span>
+    <button type="button" data-steer="right" aria-label="Next continent">▶</button>
+    <button type="button" data-steer="down" aria-label="Next planet">▼</button>
+  </div>
+
+  <main id="content" tabindex="-1">
+
+    <!-- ============ PLANET: HOME ============ -->
+    <section class="planet" id="home" data-name="Nova Baghdad" data-label="Home">
+      <header class="planet-head">
+        <p class="planet-kicker">Planet I · Home</p>
+        <h2>Nova Baghdad</h2>
+      </header>
+
+      <article class="continent" id="home-welcome" data-name="Welcome Shore">
+        <h3>Welcome aboard</h3>
+        <p class="hero-name">Mohammed Hussain Abbas</p>
+        <p class="hero-roles">I'm a <span class="typed" data-roles="Software Developer|Full Stack Developer|Game Developer|Game Designer|Software Designer">Software Developer</span></p>
+        <p>You are piloting a ship through my solar system. Every planet is a page of my portfolio and every continent on it is a section. Pick a planet below, or click a continent to land on it.</p>
+      </article>
+
+      <article class="continent" id="home-brief" data-name="Mission Brief">
+        <h3>Mission brief</h3>
+        <p>A software developer from Baghdad who builds web APIs, desktop tools and the occasional game world. I get the job done.</p>
+        <ul class="stats">
+          <li><strong>4+</strong><span>years building software</span></li>
+          <li><strong>5</strong><span>companies shipped for</span></li>
+          <li><strong>29</strong><span>tools in the arsenal</span></li>
+        </ul>
+      </article>
+
+      <article class="continent" id="home-manual" data-name="Flight Manual">
+        <h3>Flight manual</h3>
+        <ul class="manual">
+          <li><kbd>1</kbd>–<kbd>5</kbd> or <kbd>↑</kbd> <kbd>↓</kbd> warp between planets</li>
+          <li><kbd>←</kbd> <kbd>→</kbd> visit the next continent</li>
+          <li>On a phone, steer with the arrow pad: ▲ ▼ change planet, ◀ ▶ change continent</li>
+          <li>Drag the planet to spin it, tap a continent to land</li>
+          <li>Prefer reading? Use <em>Classic view</em> in the top right corner</li>
+        </ul>
+      </article>
     </section>
-    <!-- /Hero Section -->
-    
 
-    <!-- About Section -->
-    <section id="about" class="about section">
+    <!-- ============ PLANET: ABOUT ============ -->
+    <section class="planet" id="about" data-name="Persona" data-label="About">
+      <header class="planet-head">
+        <p class="planet-kicker">Planet II · About</p>
+        <h2>Persona</h2>
+      </header>
 
-      <!-- Section Title -->
-      <div class="container section-title" data-aos="fade-up">
-        <h2>About</h2>
-        <p>I Get Job Done</p>
-      </div><!-- End Section Title -->
-
-      <div class="container" data-aos="fade-up" data-aos-delay="100">
-
-        <div class="row gy-4 justify-content-center">
-          <div class="col-lg-4">
-            <img src="assets/img/MyProfile.jpg" class="img-fluid"  alt="">
-          </div>
-          <div class="col-lg-8 content">
-            <h2>Software Developer.</h2>
-            <p class="py-3">
-              I'm a passionate web developer with over 4 years of experience in creating dynamic and responsive web applications. I specialize in ASP.NET Core and SQL Server, with solid front-end development skills. I’m always eager to learn and stay updated with new technologies. I enjoy working with teams to deliver high-quality projects on time and within budget.
-            </p>
-            
-            <div class="row">
-              <div class="col-lg-6">
-                <ul>
-                  <li><i class="bi bi-chevron-right"></i> <strong>Birthday:</strong> <span>28 Nov 1998</span></li>
-                  <li><i class="bi bi-chevron-right"></i> <strong>Phone:</strong> <span>+9647716645255</span></li>
-                  <li><i class="bi bi-chevron-right"></i> <strong>City:</strong> <span>Baghdad-Iraq</span></li>
-                </ul>
-              </div>
-              <div class="col-lg-6">
-                <ul>
-                  <li><i class="bi bi-chevron-right"></i> <strong>Age:</strong> <span>26</span></li>
-                  <li><i class="bi bi-chevron-right"></i> <strong>Degree:</strong> <span>Bachelor</span></li>
-                  <li><i class="bi bi-chevron-right"></i> <strong>Email:</strong> <span>mohammed.halkfgi@gmail.com</span></li>
-                  <li><i class="bi bi-chevron-right"></i> <strong>Freelance:</strong> <span>Available</span></li>
-                </ul>
-              </div>
-            </div>
-          </div>
+      <article class="continent" id="about-profile" data-name="Profile Plateau">
+        <h3>Software Developer</h3>
+        <div class="profile">
+          <img src="assets/img/MyProfile.jpg" alt="Portrait of Mohammed Hussain" width="120" height="120" loading="lazy">
+          <p>I'm a passionate web developer with over 4 years of experience in creating dynamic and responsive web applications. I specialize in ASP.NET Core and SQL Server, with solid front-end development skills. I'm always eager to learn and stay updated with new technologies.</p>
         </div>
+      </article>
 
-      </div>
+      <article class="continent" id="about-vitals" data-name="Vital Signs">
+        <h3>Vital signs</h3>
+        <dl class="facts">
+          <div><dt>Birthday</dt><dd>28 Nov 1998</dd></div>
+          <div><dt>Age</dt><dd data-age-from="1998-11-28">26</dd></div>
+          <div><dt>City</dt><dd>Baghdad, Iraq</dd></div>
+          <div><dt>Degree</dt><dd>Bachelor</dd></div>
+          <div><dt>Phone</dt><dd><a href="tel:+9647716645255">+964 771 664 5255</a></dd></div>
+          <div><dt>Email</dt><dd><a href="mailto:mohammed.halkfgi@gmail.com">mohammed.halkfgi@gmail.com</a></dd></div>
+          <div><dt>Freelance</dt><dd>Available</dd></div>
+        </dl>
+      </article>
 
-    </section><!-- /About Section -->
+      <article class="continent" id="about-creed" data-name="The Creed">
+        <h3>I get the job done</h3>
+        <p>I enjoy working with teams to deliver high-quality projects on time and within budget. From database design to the last pixel of the interface, I like owning a problem until it is solved and shipped.</p>
+      </article>
+    </section>
 
-  
+    <!-- ============ PLANET: SKILLS ============ -->
+    <section class="planet" id="skills" data-name="Arsenal" data-label="Skills">
+      <header class="planet-head">
+        <p class="planet-kicker">Planet III · Skills</p>
+        <h2>Arsenal</h2>
+      </header>
 
-   <!-- Skills Section -->
-<!-- Skills Section -->
-<section id="skills" class="skills section light-background">
+      <article class="continent" id="skills-backend" data-name="Back-end Highlands">
+        <h3>Back-end</h3>
+        <ul class="chips">
+          <li>C#</li><li>.NET Framework</li><li>.NET Core</li><li>ASP.NET</li><li>ASP.NET Core</li><li>API</li><li>MVC Architecture</li><li>Clean Architecture</li>
+        </ul>
+      </article>
 
-  <!-- Section Title -->
-  <div class="container section-title" data-aos="fade-up">
-    <h2>Skills</h2>
-  </div><!-- End Section Title -->
-  <div class="container" data-aos="fade-up" data-aos-delay="100">
+      <article class="continent" id="skills-frontend" data-name="Front-end Isles">
+        <h3>Front-end</h3>
+        <ul class="chips">
+          <li>HTML</li><li>CSS</li><li>JavaScript</li><li>React.js</li><li>Blazor</li><li>Three.js</li><li>Front-end</li>
+        </ul>
+      </article>
 
-    <!-- Skills Grid -->
-    <div class="row skills-content skills-animation">
-            <!-- Skill Cards -->
-            <div class="col-lg-4 col-md-6">
-              <div class="skill-card">
-                <h4>C#</h4>
-              </div>
-            </div><!-- End Skill Item -->      <!-- Skill Cards -->
-            <div class="col-lg-4 col-md-6">
-              <div class="skill-card">
-                <h4>.Net Framework</h4>
-              </div>
-            </div><!-- End Skill Item -->      <!-- Skill Cards -->
-            <div class="col-lg-4 col-md-6">
-              <div class="skill-card">
-                <h4>.Net Core</h4>
-              </div>
-            </div><!-- End Skill Item -->
-      <!-- Skill Cards -->
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>API</h4>
-        </div>
-      </div><!-- End Skill Item -->
+      <article class="continent" id="skills-data" data-name="Data Basin">
+        <h3>Data</h3>
+        <ul class="chips">
+          <li>SQL Server</li><li>PostgreSQL</li><li>NoSQL</li><li>Python</li>
+        </ul>
+      </article>
 
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>Asp.net</h4>
-        </div>
-      </div><!-- End Skill Item -->
+      <article class="continent" id="skills-systems" data-name="Systems Steppe">
+        <h3>Systems &amp; security</h3>
+        <ul class="chips">
+          <li>Windows</li><li>Windows Services</li><li>WPF</li><li>ERP</li><li>Cloud Computing</li><li>JWT</li><li>Encryption / Hashing</li>
+        </ul>
+      </article>
 
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>Asp.net Core</h4>
-        </div>
-      </div><!-- End Skill Item -->
+      <article class="continent" id="skills-games" data-name="Game Forge">
+        <h3>Games &amp; 3D</h3>
+        <ul class="chips">
+          <li>Unity</li><li>Unreal Engine</li><li>Blender</li>
+        </ul>
+      </article>
+    </section>
 
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>Clean Architecture</h4>
-        </div>
-      </div><!-- End Skill Item -->
+    <!-- ============ PLANET: RESUME ============ -->
+    <section class="planet" id="resume" data-name="Chronos" data-label="Resume">
+      <header class="planet-head">
+        <p class="planet-kicker">Planet IV · Resume</p>
+        <h2>Chronos</h2>
+      </header>
 
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>CSS</h4>
-        </div>
-      </div><!-- End Skill Item -->
+      <article class="continent" id="resume-summary" data-name="Summary Sands">
+        <h3>Summary</h3>
+        <p>Highly motivated and results-oriented software developer with 4+ years of experience building dynamic and responsive web applications. Skilled in ASP.NET Core architecture and SQL Server, with a strong foundation in front-end technologies. Proven ability to collaborate within cross-functional teams to deliver high-quality projects.</p>
+      </article>
 
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>Blazor</h4>
-        </div>
-      </div><!-- End Skill Item -->
-
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>Encryption/Hashing</h4>
-        </div>
-      </div><!-- End Skill Item -->
-
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>ERP</h4>
-        </div>
-      </div><!-- End Skill Item -->
-
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>Front-end</h4>
-        </div>
-      </div><!-- End Skill Item -->
-
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>HTML</h4>
-        </div>
-      </div><!-- End Skill Item -->
-
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>Cloud Computing</h4>
-        </div>
-      </div><!-- End Skill Item -->
-
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>JWT</h4>
-        </div>
-      </div><!-- End Skill Item -->
-
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>Threejs</h4>
-        </div>
-      </div><!-- End Skill Item -->
-
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>MVC Architecture</h4>
-        </div>
-      </div><!-- End Skill Item -->
-
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>No Sql</h4>
-        </div>
-      </div><!-- End Skill Item -->
-
-
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>Postgres SQL</h4>
-        </div>
-      </div><!-- End Skill Item -->
-
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>Python</h4>
-        </div>
-      </div><!-- End Skill Item -->
-
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>React.js</h4>
-        </div>
-      </div><!-- End Skill Item -->
-
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>Javascript</h4>
-        </div>
-      </div><!-- End Skill Item -->
-
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>Sql Server</h4>
-        </div>
-      </div><!-- End Skill Item -->
-
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>Windows</h4>
-        </div>
-      </div><!-- End Skill Item -->
-
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>Windows Services</h4>
-        </div>
-      </div><!-- End Skill Item -->
-
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>WPF</h4>
-        </div>
-      </div><!-- End Skill Item -->
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>Unity</h4>
-        </div>
-      </div><!-- End Skill Item -->
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>Unreal Engine</h4>
-        </div>
-      </div><!-- End Skill Item -->
-      <div class="col-lg-4 col-md-6">
-        <div class="skill-card">
-          <h4>Blender</h4>
-        </div>
-      </div><!-- End Skill Item -->
-
-    </div><!-- End Skills Grid -->
-
-  </div>
-
-</section><!-- End Skills Section -->
-
-
-  </div>
-
-</section><!-- End Skills Section -->
-
-    </section><!-- /Skills Section -->
-
-    <!-- Resume Section -->
-  <!-- Resume Section -->
-<section id="resume" class="resume section">
-
-  <!-- Section Title -->
-  <div class="container section-title" data-aos="fade-up">
-    <h2>Resume</h2>
-  </div><!-- End Section Title -->
-
-  <div class="container">
-
-    <div class="row">
-
-      <div class="col-lg-6" data-aos="fade-up" data-aos-delay="100">
-        <h3 class="resume-title">Summary</h3>
-
-        <div class="resume-item pb-0">
-          <h4>Mohammed Hussain Abbas</h4>
-          <p><em>Highly motivated and results-oriented software developer with 4+ years of experience building dynamic and responsive web applications. Skilled in ASP.NET Core architecture and SQL Server, with a strong foundation in front-end technologies. Proven ability to collaborate within cross-functional teams to deliver high-quality projects.</em></p>
-          <ul>
-            <li>Baghdad</li>
-            <li>+9647716645255</li>
-            <li>mohammed.halkfgi@gmail.com</li>
-          </ul>
-        </div><!-- End Resume Item -->
-
-        <h3 class="resume-title">Education</h3>
-        <div class="resume-item">
+      <article class="continent" id="resume-education" data-name="Academy Atoll">
+        <h3>Education</h3>
+        <div class="role">
           <h4>Bachelor Degree in Biotechnology</h4>
-          <h5>2017 - 2021</h5>
-          <p><em>University of Technology</em></p>
-        </div><!-- End Resume Item -->
-
-      </div>
-
-      <div class="col-lg-6" data-aos="fade-up" data-aos-delay="200">
-        <h3 class="resume-title">Professional Experience</h3>
-
-        <div class="resume-item">
-          <h4>Software Developer</h4>
-          <h5>Present</h5>
-          <p><em>Mubasher (Switch)</em></p>
-          <ul>
-            <li>Building robust, reliable, and scalable software solutions.</li>
-            <li>Developing APIs for projects using ASP.NET Core WebAPI.</li>
-            <li>Building desktop and mobile applications with WPF and Windows Services.</li>
-            <li>Handling database design with Postgres SQL and SQL Server.</li>
-            <li>Deploying and debugging applications on remote servers.</li>
-          </ul>
-        </div><!-- End Resume Item -->
-
-        <div class="resume-item">
-          <h4>Back-end Developer</h4>
-          <h5>April 2024 - December 2024</h5>
-          <p><em>Nas Iraq Holding</em></p>
-          <ul>
-            <li>Built scalable back-end applications and APIs using C# and ASP.NET Core.</li>
-            <li>Deployed projects to IIS and managed Postgres SQL databases.</li>
-            <li>Debugging and applying changes to existing systems.</li>
-          </ul>
-        </div><!-- End Resume Item -->
-
-        <div class="resume-item">
-          <h4>Front-end Developer</h4>
-          <h5>January 2023 - December 2023</h5>
-          <p><em>Ta3leem</em></p>
-          <ul>
-            <li>Developed client-side applications using HTML, CSS, JavaScript, and React.js.</li>
-            <li>Worked on content digitization projects and applied necessary changes.</li>
-            <li>Collaborated with back-end developers to integrate front-end and back-end systems.</li>
-          </ul>
-        </div><!-- End Resume Item -->
-
-        <div class="resume-item">
-          <h4>System Administrator</h4>
-          <h5>November 2022 - June 2023</h5>
-          <p><em>Gold Star Lights</em></p>
-          <ul>
-            <li>Managed ERP systems and provided IT support.</li>
-            <li>Maintained systems for the Public Pension Authority.</li>
-          </ul>
-        </div><!-- End Resume Item -->
-        <div class="resume-item">
-          <h4>Programmer</h4>
-          <h5>January 2022 - November 2022</h5>
-          <p><em>Alhadi Software Solutions</em></p>
-          <ul>
-            <li>Managed existing systems and provided IT support.</li>
-            <li>Developed Tools For the sake of ease of work</li>
-            <li>Managed Data bases</li>
-            <li>Developed Web/Desktop Application</li>
-          </ul>
-        </div><!-- End Resume Item -->
-
-      </div>
-
-    </div>
-
-  </div>
-
-</section><!-- /Resume Section -->
-
-
-  
-
-  
-
-    <!-- Contact Section -->
-    <section id="contact" class="contact section">
-
-      <!-- Section Title -->
-      <div class="container section-title" data-aos="fade-up">
-        <h2>Contact</h2>
-        <p>Feel Free To Contact Me at Any Time</p>
-      </div><!-- End Section Title -->
-
-      <div class="container" data-aos="fade-up" data-aos-delay="100">
-
-        <div class="row gy-4">
-
-          <div class="col-lg-5">
-
-            <div class="info-wrap">
-              <div class="info-item d-flex" data-aos="fade-up" data-aos-delay="200">
-                <i class="bi bi-geo-alt flex-shrink-0"></i>
-                <div>
-                  <h3>Address</h3>
-                  <p>Iraq Baghdad-Alzaafrania 957 14 10</p>
-                </div>
-              </div><!-- End Info Item -->
-
-              <div class="info-item d-flex" data-aos="fade-up" data-aos-delay="300">
-                <i class="bi bi-telephone flex-shrink-0"></i>
-                <div>
-                  <h3>Call Us</h3>
-                  <p>+9647716645255</p>
-                </div>
-              </div><!-- End Info Item -->
-
-              <div class="info-item d-flex" data-aos="fade-up" data-aos-delay="400">
-                <i class="bi bi-envelope flex-shrink-0"></i>
-                <div>
-                  <h3>Email Us</h3>
-                  <p>mohammed.halkfgi@gmail.com</p>
-                </div>
-              </div><!-- End Info Item -->
-              
-            </div>
-          </div>
-
-          <div class="col-lg-7">
-            <form action="forms/contact.php" method="post" class="php-email-form" data-aos="fade-up" data-aos-delay="200">
-              <div class="row gy-4">
-
-                <div class="col-md-6">
-                  <label for="name-field" class="pb-2">Your Name</label>
-                  <input type="text" name="name" id="name-field" class="form-control" required="">
-                </div>
-
-                <div class="col-md-6">
-                  <label for="email-field" class="pb-2">Your Email</label>
-                  <input type="email" class="form-control" name="email" id="email-field" required="">
-                </div>
-
-                <div class="col-md-12">
-                  <label for="subject-field" class="pb-2">Subject</label>
-                  <input type="text" class="form-control" name="subject" id="subject-field" required="">
-                </div>
-
-                <div class="col-md-12">
-                  <label for="message-field" class="pb-2">Message</label>
-                  <textarea class="form-control" name="message" rows="10" id="message-field" required=""></textarea>
-                </div>
-
-                <div class="col-md-12 text-center">
-                  <div class="loading">Loading</div>
-                  <div class="error-message"></div>
-                  <div class="sent-message">Your message has been sent. Thank you!</div>
-
-                  <button type="submit">Send Message</button>
-                </div>
-
-              </div>
-            </form>
-          </div><!-- End Contact Form -->
-
+          <p class="when">2017 – 2021 · University of Technology</p>
         </div>
+      </article>
 
-      </div>
+      <article class="continent" id="resume-mubasher" data-name="Mubasher">
+        <h3>Software Developer</h3>
+        <p class="when">Present · Mubasher (Switch)</p>
+        <ul>
+          <li>Building robust, reliable, and scalable software solutions.</li>
+          <li>Developing APIs for projects using ASP.NET Core WebAPI.</li>
+          <li>Building desktop and mobile applications with WPF and Windows Services.</li>
+          <li>Handling database design with PostgreSQL and SQL Server.</li>
+          <li>Deploying and debugging applications on remote servers.</li>
+        </ul>
+      </article>
 
-    </section><!-- /Contact Section -->
+      <article class="continent" id="resume-nas" data-name="Nas Iraq">
+        <h3>Back-end Developer</h3>
+        <p class="when">April 2024 – December 2024 · Nas Iraq Holding</p>
+        <ul>
+          <li>Built scalable back-end applications and APIs using C# and ASP.NET Core.</li>
+          <li>Deployed projects to IIS and managed PostgreSQL databases.</li>
+          <li>Debugged and applied changes to existing systems.</li>
+        </ul>
+      </article>
+
+      <article class="continent" id="resume-ta3leem" data-name="Ta3leem">
+        <h3>Front-end Developer</h3>
+        <p class="when">January 2023 – December 2023 · Ta3leem</p>
+        <ul>
+          <li>Developed client-side applications using HTML, CSS, JavaScript, and React.js.</li>
+          <li>Worked on content digitization projects and applied necessary changes.</li>
+          <li>Collaborated with back-end developers to integrate front-end and back-end systems.</li>
+        </ul>
+      </article>
+
+      <article class="continent" id="resume-goldstar" data-name="Gold Star">
+        <h3>System Administrator</h3>
+        <p class="when">November 2022 – June 2023 · Gold Star Lights</p>
+        <ul>
+          <li>Managed ERP systems and provided IT support.</li>
+          <li>Maintained systems for the Public Pension Authority.</li>
+        </ul>
+      </article>
+
+      <article class="continent" id="resume-alhadi" data-name="Alhadi">
+        <h3>Programmer</h3>
+        <p class="when">January 2022 – November 2022 · Alhadi Software Solutions</p>
+        <ul>
+          <li>Managed existing systems and provided IT support.</li>
+          <li>Developed tools to make day-to-day work easier.</li>
+          <li>Managed databases.</li>
+          <li>Developed web and desktop applications.</li>
+        </ul>
+      </article>
+    </section>
+
+    <!-- ============ PLANET: CONTACT ============ -->
+    <section class="planet" id="contact" data-name="Beacon" data-label="Contact">
+      <header class="planet-head">
+        <p class="planet-kicker">Planet V · Contact</p>
+        <h2>Beacon</h2>
+      </header>
+
+      <article class="continent" id="contact-coordinates" data-name="Coordinates">
+        <h3>Coordinates</h3>
+        <p>Feel free to contact me at any time.</p>
+        <dl class="facts">
+          <div><dt>Address</dt><dd>Iraq, Baghdad · Alzaafrania 957 14 10</dd></div>
+          <div><dt>Call</dt><dd><a href="tel:+9647716645255">+964 771 664 5255</a></dd></div>
+          <div><dt>Email</dt><dd><a href="mailto:mohammed.halkfgi@gmail.com">mohammed.halkfgi@gmail.com</a></dd></div>
+        </dl>
+      </article>
+
+      <article class="continent" id="contact-transmit" data-name="Transmission Tower">
+        <h3>Send a transmission</h3>
+        <form id="contact-form" class="contact-form">
+          <label>Your name <input type="text" name="name" required autocomplete="name"></label>
+          <label>Your email <input type="email" name="email" required autocomplete="email"></label>
+          <label>Subject <input type="text" name="subject" required></label>
+          <label>Message <textarea name="message" rows="5" required></textarea></label>
+          <button type="submit">Transmit</button>
+          <p class="form-note">Opens your email app with the message ready to send.</p>
+        </form>
+      </article>
+
+      <article class="continent" id="contact-network" data-name="Network Nebula">
+        <h3>Network</h3>
+        <ul class="links">
+          <li><a href="https://github.com/Moh9998" rel="noopener" target="_blank">GitHub · Moh9998</a></li>
+          <li><a href="https://github.com/Moh9998/Portfolio" rel="noopener" target="_blank">Source of this solar system</a></li>
+        </ul>
+      </article>
+    </section>
+
+    <div class="panel-controls" id="panel-controls" hidden>
+      <button type="button" class="hud-btn" id="prev-continent" aria-label="Previous continent">←</button>
+      <span id="continent-count"></span>
+      <button type="button" class="hud-btn" id="next-continent" aria-label="Next continent">→</button>
+    </div>
 
   </main>
 
-  <!-- Scroll Top -->
-  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
 
-  <!-- Preloader -->
-  <div id="preloader"></div>
-
-  <!-- Vendor JS Files -->
-  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-  <script src="assets/vendor/php-email-form/validate.js"></script>
-  <script src="assets/vendor/aos/aos.js"></script>
-  <script src="assets/vendor/typed.js/typed.umd.js"></script>
-  <script src="assets/vendor/purecounter/purecounter_vanilla.js"></script>
-  <script src="assets/vendor/waypoints/noframework.waypoints.js"></script>
-  <script src="assets/vendor/glightbox/js/glightbox.min.js"></script>
-  <script src="assets/vendor/imagesloaded/imagesloaded.pkgd.min.js"></script>
-  <script src="assets/vendor/isotope-layout/isotope.pkgd.min.js"></script>
-  <script src="assets/vendor/swiper/swiper-bundle.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="assets/js/canvas.js"></script>
-
-  <!-- Main JS File -->
-  <script src="assets/js/main.js"></script>
-
+  <script src="assets/js/site.js"></script>
+  <script type="module" src="assets/js/space/app.js"></script>
 </body>
 
 </html>
