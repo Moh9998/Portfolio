@@ -376,11 +376,10 @@ kbd { font: 12px var(--mono); border: 1px solid var(--line); border-bottom-width
   .space .sites { grid-template-columns: 1fr 1fr; gap: 4px; }
   .space .sites a { grid-template-columns: 16px 1fr auto; gap: 6px; padding: 6px 8px; }
   .space .site-biome { display: none; }
-  .space .site-name { font-size: 12.5px; }
+  .space .site-name { font-size: 12.5px; white-space: normal; overflow: visible; line-height: 1.15; overflow-wrap: anywhere; }
   .space .site-time { font-size: 10.5px; min-width: 0; }
   .space .site-head { gap: 4px; margin: 0 0 6px; }
   .space .site-badge, .space .site-read { font-size: 10px; padding: 2px 7px; }
-  .space .site-read:nth-of-type(n+4) { display: none; }
   #greet .g1 { font-size: 10px; letter-spacing: 0.2em; }
   .space #greet { top: calc(var(--fy, 30%) - 12vh); }
   .space .label.planet-label { display: none; }
@@ -471,9 +470,9 @@ kbd { font: 12px var(--mono); border: 1px solid var(--line); border-bottom-width
   .space .planet-stats dd { font-size: 11px; }
   .space .sites a { padding: 4px 8px; }
   .space .greeting { font-size: 13px; }
-  .space .site-read:nth-of-type(n+3) { display: none; }
-  .space #take-off { left: var(--fx, 25%); transform: translateX(-50%); top: 46px; bottom: auto; }
-  .space #take-off:active { transform: translateX(-50%) scale(0.95); }
+  /* Beside the arrow pad, below the billboards */
+  .space #take-off { left: 132px; transform: none; top: auto; bottom: 54px; font-size: 12px; padding: 7px 14px 7px 8px; gap: 6px; }
+  .space #take-off:active { transform: scale(0.95); }
 }
 
 /* ==========================================================

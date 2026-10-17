@@ -666,7 +666,9 @@ export class World {
     const m = p.body.matrixWorld;
     const at = (x, y, z, v) => v.set(x * R, y * R, z * R).applyQuaternion(q).add(local).applyMatrix4(m);
     at(0, 0, 0, out.ship);
-    at(0, 0.069, -0.17, out.pos);
+    // Same step back as the landed camera on narrow screens, so touchdown doesn't jolt the view
+    const narrow = THREE.MathUtils.clamp((1.2 - this.width / this.height) / 0.75, 0, 1);
+    at(0, 0.069 + 0.05 * narrow, -0.17 - 0.13 * narrow, out.pos);
     at(0, 0.014, 0.06, out.look);
     const bodyQ = p.body.getWorldQuaternion(out.worldQ || (out.worldQ = new THREE.Quaternion()));
     out.shipQuat.copy(bodyQ).multiply(q);
