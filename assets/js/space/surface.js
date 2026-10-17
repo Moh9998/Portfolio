@@ -19,14 +19,19 @@ function rng(seed) {
   };
 }
 
-// Scatter points over the ground in front of the camera, following the planet's curve
+// Scatter points over the ground all around the landing pad, following the planet's curve.
+// Denser close in, so the ship sits inside the landscape rather than in front of it.
 function scatter(rand, R, count, { near = 0.03, far = 0.32, avoid = [] } = {}) {
   const out = [];
   let tries = 0;
+  count = Math.round(count * 2); // the ring around the pad is about twice the old wedge in front of it
+  const r0 = Math.max(near, 0.04);
   while (out.length < count && tries++ < count * 20) {
-    const z = R * (near + Math.pow(rand(), 0.8) * (far - near));
-    const x = (rand() * 2 - 1) * (R * 0.06 + z * 0.9);
-    if (Math.abs(x) < R * 0.045 && z < R * 0.07) continue; // keep the landing pad clear
+    const r = R * (r0 + Math.pow(rand(), 1.3) * (far - r0));
+    const a = rand() * Math.PI * 2;
+    const x = Math.sin(a) * r, z = Math.cos(a) * r;
+    if (z < -R * 0.2) continue; // behind the camera: never seen
+    if (z < 0 && Math.abs(x) < R * 0.045 + -z * 0.35) continue; // keep the camera's view of the ship clear
     if (avoid.some((a) => Math.abs(x - a.x) < a.w && z < a.z)) continue;
     const y = -(x * x + z * z) / (2 * R);
     const up = new THREE.Vector3(x / R, 1, z / R).normalize();
@@ -432,13 +437,22 @@ function rainforestDetails(R, rand, g) {
   // Fireflies drifting over the canopy
   const n = 140, base = new Float32Array(n * 3), pos = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) {
-    const z = R * (0.03 + rand() * 0.25), x = (rand() * 2 - 1) * (R * 0.04 + z * 0.8);
+    const fr = R * (0.035 + Math.pow(rand(), 1.3) * 0.22), fa = rand() * Math.PI * 2;
+    const x = Math.sin(fa) * fr, z = Math.max(Math.cos(fa) * fr, -R * 0.12);
     base.set([x, groundAt(R, x, z) + R * (0.006 + rand() * 0.035), z], i * 3);
   }
   pos.set(base);
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-  const mat = new THREE.PointsMaterial({ color: 0xd8ff6a, size: R * 0.0035, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+  const dot = document.createElement("canvas");
+  dot.width = dot.height = 32;
+  const dg = dot.getContext("2d"), grad = dg.createRadialGradient(16, 16, 0, 16, 16, 16);
+  grad.addColorStop(0, "rgba(255,255,255,1)");
+  grad.addColorStop(0.3, "rgba(255,255,255,0.6)");
+  grad.addColorStop(1, "rgba(255,255,255,0)");
+  dg.fillStyle = grad;
+  dg.fillRect(0, 0, 32, 32);
+  const mat = new THREE.PointsMaterial({ map: new THREE.CanvasTexture(dot), color: 0xd8ff6a, size: R * 0.0035, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
   g.add(new THREE.Points(geo, mat));
   return (t) => {
     for (let i = 0; i < n; i++) {
