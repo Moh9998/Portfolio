@@ -260,44 +260,75 @@ export class World {
     });
   }
 
+  // A classic explorer starship: saucer on a neck, secondary hull, two warp nacelles
   buildShip() {
     const ship = new THREE.Group();
-    const hull = new THREE.MeshStandardMaterial({ color: 0xdfe6f5, metalness: 0.6, roughness: 0.35 });
-    const dark = new THREE.MeshStandardMaterial({ color: 0x2a3350, metalness: 0.5, roughness: 0.5 });
-    const accent = new THREE.MeshStandardMaterial({ color: 0x6ee7ff, emissive: 0x2bb7d6, emissiveIntensity: 0.8 });
+    const hull = new THREE.MeshStandardMaterial({ color: 0xe4e8f0, emissive: 0x464c58, metalness: 0.35, roughness: 0.45 });
+    const panel = new THREE.MeshStandardMaterial({ color: 0xb9c0cf, emissive: 0x30353f, metalness: 0.4, roughness: 0.5 });
+    const glow = (color, intensity = 1.2) => new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: intensity });
 
-    const body = new THREE.Mesh(new THREE.ConeGeometry(0.55, 2.6, 16), hull);
-    body.rotation.x = Math.PI / 2; // nose along +Z
-    ship.add(body);
-    const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.45, 0.8, 16), dark);
-    tail.rotation.x = Math.PI / 2;
-    tail.position.z = -1.6;
-    ship.add(tail);
-    const cockpit = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 12), accent);
-    cockpit.scale.set(1, 0.7, 1.6);
-    cockpit.position.set(0, 0.32, 0.1);
-    ship.add(cockpit);
-    const wingShape = new THREE.Shape();
-    wingShape.moveTo(0, 0.6); wingShape.lineTo(1.9, -0.9); wingShape.lineTo(1.9, -1.3); wingShape.lineTo(0, -1.0);
-    const wingGeo = new THREE.ExtrudeGeometry(wingShape, { depth: 0.08, bevelEnabled: false });
+    // Saucer section
+    const profile = [[0, 0.16], [0.45, 0.15], [1.2, 0.08], [1.55, 0.01], [1.52, -0.05], [1.1, -0.1], [0.35, -0.14], [0, -0.15]]
+      .map(([r, y]) => new THREE.Vector2(r, y));
+    const saucer = new THREE.Mesh(new THREE.LatheGeometry(profile, 56), hull);
+    saucer.position.set(0, 0.55, 1.3);
+    ship.add(saucer);
+    const bridge = new THREE.Mesh(new THREE.SphereGeometry(0.24, 20, 12), panel);
+    bridge.scale.set(1, 0.45, 1);
+    bridge.position.set(0, 0.72, 1.15);
+    ship.add(bridge);
+    const windows = new THREE.Mesh(new THREE.TorusGeometry(1.4, 0.014, 6, 72), glow(0xfff1c9, 0.9));
+    windows.rotation.x = Math.PI / 2;
+    windows.position.set(0, 0.57, 1.3);
+    ship.add(windows);
+    const impulse = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.07, 0.06), glow(0xff5a3c, 1.6));
+    impulse.position.set(0, 0.58, -0.2);
+    ship.add(impulse);
+
+    // Neck and secondary hull with its deflector dish
+    const neck = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.85, 0.5), hull);
+    neck.position.set(0, 0.2, 0.2);
+    neck.rotation.x = -0.45;
+    ship.add(neck);
+    const engineering = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.28, 2.4, 24), hull);
+    engineering.rotation.x = Math.PI / 2;
+    engineering.scale.z = 1.15;
+    engineering.position.set(0, -0.2, -0.6);
+    ship.add(engineering);
+    const dish = new THREE.Mesh(new THREE.SphereGeometry(0.22, 20, 12), glow(0xffa94d, 1.5));
+    dish.scale.z = 0.35;
+    dish.position.set(0, -0.2, 0.62);
+    ship.add(dish);
+
+    // Pylons and warp nacelles
+    this.flames = [];
     [1, -1].forEach((s) => {
-      const w = new THREE.Mesh(wingGeo, hull);
-      w.rotation.x = -Math.PI / 2;
-      w.scale.x = s;
-      w.position.set(0, -0.04, -0.5);
-      ship.add(w);
-      const tip = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.3, 0.7), accent);
-      tip.position.set(1.9 * s, 0.05, -1.55);
-      ship.add(tip);
-    });
-    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.7, 0.8), dark);
-    fin.position.set(0, 0.45, -1.4);
-    ship.add(fin);
+      const pylon = new THREE.Mesh(new THREE.BoxGeometry(0.07, 1.2, 0.34), panel);
+      pylon.position.set(0.6 * s, 0.35, -1.25);
+      pylon.rotation.z = -0.73 * s;
+      ship.add(pylon);
 
-    this.flame = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture("rgba(220,250,255,1)", "rgba(60,180,255,0.6)"), blending: THREE.AdditiveBlending, depthWrite: false }));
-    this.flame.position.z = -2.2;
-    this.flame.scale.setScalar(1.6);
-    ship.add(this.flame);
+      const nacelle = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.15, 2.6, 18), hull);
+      nacelle.rotation.x = Math.PI / 2;
+      nacelle.position.set(1.0 * s, 0.85, -1.3);
+      ship.add(nacelle);
+      const bussard = new THREE.Mesh(new THREE.SphereGeometry(0.17, 18, 12), glow(0xff3b2f, 1.8));
+      bussard.scale.z = 1.25;
+      bussard.position.set(1.0 * s, 0.85, 0.0);
+      ship.add(bussard);
+      const grille = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.09, 2.0), glow(0x5fc8ff, 1.6));
+      grille.position.set((1.0 - 0.165) * s, 0.85, -1.35);
+      ship.add(grille);
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.15, 14, 10), panel);
+      cap.scale.z = 0.6;
+      cap.position.set(1.0 * s, 0.85, -2.6);
+      ship.add(cap);
+
+      const flame = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture("rgba(220,250,255,1)", "rgba(60,180,255,0.6)"), blending: THREE.AdditiveBlending, depthWrite: false }));
+      flame.position.set(1.0 * s, 0.85, -2.75);
+      ship.add(flame);
+      this.flames.push(flame);
+    });
 
     // Inner group so the ship can bank into turns without fighting lookAt
     const hullGroup = new THREE.Group();
@@ -307,7 +338,7 @@ export class World {
     this.bank = 0;
     this.prevTangent = new THREE.Vector3(0, 0, 1);
 
-    ship.scale.setScalar(0.9);
+    ship.scale.setScalar(0.62);
     this.scene.add(ship);
     this.ship = ship;
 
@@ -654,7 +685,7 @@ export class World {
 
     // Engine flame + dust react to speed
     const thrust = this.travel ? 0.6 + warp * 1.6 : 0.35;
-    this.flame.scale.setScalar(1.2 + thrust * 1.6 + Math.sin(T * 40) * 0.1);
+    this.flames.forEach((f, i) => f.scale.setScalar(0.9 + thrust * 1.3 + Math.sin(T * 40 + i) * 0.08));
     this.dust.material.opacity = 0.15 + warp * 0.7;
     this.dust.position.copy(this.ship.position);
 
@@ -690,7 +721,7 @@ export class World {
   }
 
   updateTrail() {
-    const tail = tmpV.set(0, 0, -2.2).applyMatrix4(this.ship.matrixWorld);
+    const tail = tmpV.set(0, 0.6, -2.7).applyMatrix4(this.ship.matrixWorld);
     const a = this.trailPts;
     if (!this.trailInit) { for (let i = 0; i < this.trailLen; i++) a.set([tail.x, tail.y, tail.z], i * 3); this.trailInit = true; }
     a.copyWithin(3, 0, a.length - 3);
