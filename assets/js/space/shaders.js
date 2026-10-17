@@ -74,6 +74,7 @@ export const planetShader = {
 uniform vec3 uCenters[MAXC];
 uniform float uRadii[MAXC];
 uniform vec3 uColors[MAXC];
+uniform float uKind[MAXC];
 uniform int uCount;
 uniform int uActive;
 uniform int uHover;
@@ -111,14 +112,36 @@ void main(){
   float o = fbm(n * 5.0 + uSeed * 2.0);
   vec3 ocean = mix(uOceanDeep, uOcean, clamp(0.55 + o * 0.6 + shore * 0.8, 0.0, 1.0));
 
-  // Land: base biome color, relief, high peaks
+  // Land: base color, relief, then the look of its landscape
+  // kind: 0 wilds, 1 city, 2 desert, 3 arctic, 4 rainforest
   vec3 base = vec3(0.5);
-  for (int i = 0; i < MAXC; i++) { if (i == best) base = uColors[i]; }
+  float kind = 0.0;
+  for (int i = 0; i < MAXC; i++) { if (i == best) { base = uColors[i]; kind = uKind[i]; } }
   float h = fbm(n * 14.0 + uSeed * 3.0);
+  float fine = snoise(n * 150.0 + uSeed) * 0.6 + snoise(n * 420.0 - uSeed) * 0.4;
   float inland = smoothstep(0.0, 0.25, bestM);
-  vec3 ground = base * (0.72 + 0.55 * h);
+  vec3 ground = base * (0.72 + 0.55 * h + fine * 0.1);
   ground = mix(ground * 1.15 + 0.05, ground, smoothstep(0.0, 0.03, bestM));
-  ground = mix(ground, vec3(0.93, 0.95, 1.0), smoothstep(0.55, 0.85, h * 0.8 + inland * 0.45) * 0.5);
+  float snow = smoothstep(0.55, 0.85, h * 0.8 + inland * 0.45) * 0.5;
+  float isCity = 1.0 - step(0.5, abs(kind - 1.0));
+  float isDesert = 1.0 - step(0.5, abs(kind - 2.0));
+  float isArctic = 1.0 - step(0.5, abs(kind - 3.0));
+  float isForest = 1.0 - step(0.5, abs(kind - 4.0));
+  // Desert: wind-combed dunes, no snow
+  float dunes = sin(dot(n, vec3(70.0, 21.0, 43.0)) + fbm(n * 9.0 + uSeed) * 7.0);
+  ground *= 1.0 + isDesert * 0.13 * dunes;
+  snow *= 1.0 - isDesert;
+  snow *= 1.0 - isForest;
+  // Arctic: ice sheet with blue crevasses
+  ground = mix(ground, mix(vec3(0.62, 0.78, 0.92), vec3(0.95, 0.97, 1.0), smoothstep(-0.4, 0.5, h + fine * 0.3)), isArctic * 0.85);
+  // Rainforest: dense dark canopy
+  ground *= 1.0 - isForest * (0.25 - 0.3 * smoothstep(-0.2, 0.7, snoise(n * 90.0 + uSeed)));
+  // City: grey blocks and a street grid
+  vec3 q = abs(fract(n * 260.0) - 0.5);
+  float streets = smoothstep(0.42, 0.47, max(q.x, max(q.y, q.z)));
+  vec3 blocks = mix(vec3(0.2, 0.21, 0.25), vec3(0.3, 0.31, 0.36), smoothstep(-0.5, 0.5, snoise(n * 520.0)));
+  ground = mix(ground, mix(blocks, vec3(0.08, 0.085, 0.1), streets) * (0.85 + 0.3 * h), isCity * 0.85 * inland);
+  ground = mix(ground, vec3(0.93, 0.95, 1.0), snow * (1.0 - isCity));
 
   vec3 albedo = mix(ocean, ground, land);
 
@@ -132,8 +155,9 @@ void main(){
 
   // City lights on the night side
   float night = 1.0 - smoothstep(-0.1, 0.15, dot(N, L));
-  float cities = smoothstep(0.6, 0.85, snoise(n * 45.0 + uSeed)) * land * inland;
-  col += night * cities * vec3(1.0, 0.75, 0.4) * 0.9;
+  float lights = smoothstep(0.2, 0.7, snoise(n * 45.0 + uSeed)) * (0.35 + streets) * isCity;
+  lights += smoothstep(0.75, 0.9, snoise(n * 45.0 + uSeed)) * 0.25 * (1.0 - isCity - isArctic);
+  col += night * lights * land * inland * vec3(1.0, 0.75, 0.4) * 1.1;
 
   // Highlight the selected / hovered continent
   if (best == uActive && land > 0.0) {
@@ -157,6 +181,7 @@ uniform vec3 uSunPos;
 uniform float uSeed;
 uniform float uTime;
 uniform float uDensity;
+uniform float uFade;
 varying vec3 vObj;
 varying vec3 vNormalW;
 varying vec3 vPosW;
@@ -167,7 +192,7 @@ void main(){
   float a = smoothstep(0.1, 0.55, c + uDensity) * 0.75;
   vec3 N = normalize(vNormalW);
   float diff = max(dot(N, normalize(uSunPos - vPosW)), 0.0);
-  gl_FragColor = vec4(vec3(1.0) * (0.05 + diff), a * (0.15 + diff));
+  gl_FragColor = vec4(vec3(1.0) * (0.05 + diff), a * (0.15 + diff) * uFade);
 }
 `,
 };

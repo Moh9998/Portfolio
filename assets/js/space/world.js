@@ -1,6 +1,7 @@
 // The solar system: sun, planets with continents, the ship and the camera choreography.
 import * as THREE from "three";
 import { planetShader, cloudShader, atmosphereShader, sunShader, nebulaShader, MAX_CONTINENTS } from "./shaders.js";
+import { BIOME_KIND, BIOME_TINT, buildSite, disposeSite, tickBoards } from "./surface.js";
 
 // Visual identity of each planet. Content (names, continents) comes from the DOM.
 export const PLANET_LOOKS = {
@@ -35,8 +36,12 @@ const UP = new THREE.Vector3(0, 1, 0);
 const tmpV = new THREE.Vector3();
 const tmpV2 = new THREE.Vector3();
 const tmpQ = new THREE.Quaternion();
+const tmpM = new THREE.Matrix4();
+const tmpM2 = new THREE.Matrix4();
 
 const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+const SHIP_SCALE = 0.62;
 const smooth = (a, b, x) => { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); };
 
 // Spread n points evenly over a sphere, then turn the whole set by a seeded rotation
@@ -93,7 +98,11 @@ export class World {
     this.panelInset = { x: 0, y: 0 };
     this.planetPx = 0;
     this.onArrive = null;
+    this.site = null;        // continent the ship has landed on: { id, index, frame, props }
+    this.surf = null;        // active dive / take-off
 
+    this.pose = { pos: new THREE.Vector3(), look: new THREE.Vector3(), up: new THREE.Vector3(), north: new THREE.Vector3(), ship: new THREE.Vector3(), shipQuat: new THREE.Quaternion(), shipScale: SHIP_SCALE };
+    this.diveFov = 0;
     this.buildBackdrop();
     this.buildSun();
     planetsData.forEach((p) => this.buildPlanet(p));
@@ -191,7 +200,9 @@ export class World {
     const uniforms = {
       uCenters: { value: pad(centers, new THREE.Vector3(0, 1, 0)) },
       uRadii: { value: pad(centers.map(() => radius), 0) },
-      uColors: { value: pad(centers.map((_, i) => new THREE.Color(look.continents[i % look.continents.length])), new THREE.Color()) },
+      // Continent colour: its landscape, tinted with the planet's own palette
+      uColors: { value: pad(centers.map((_, i) => new THREE.Color(BIOME_TINT[data.continents[i].biome] || BIOME_TINT.wilds).lerp(new THREE.Color(look.continents[i % look.continents.length]), 0.3)), new THREE.Color()) },
+      uKind: { value: pad(centers.map((_, i) => BIOME_KIND[data.continents[i].biome] || 0), 0) },
       uCount: { value: n },
       uActive: { value: -1 },
       uHover: { value: -1 },
@@ -205,7 +216,7 @@ export class World {
     const mesh = new THREE.Mesh(new THREE.SphereGeometry(look.radius, 128, 96), new THREE.ShaderMaterial({ ...planetShader, uniforms }));
     body.add(mesh);
 
-    const cloudUniforms = { uSunPos: { value: this.sunPos }, uSeed: { value: look.seed + 3 }, uTime: { value: 0 }, uDensity: { value: look.clouds } };
+    const cloudUniforms = { uSunPos: { value: this.sunPos }, uSeed: { value: look.seed + 3 }, uTime: { value: 0 }, uDensity: { value: look.clouds }, uFade: { value: 1 } };
     const clouds = new THREE.Mesh(
       new THREE.SphereGeometry(look.radius * 1.025, 96, 64),
       new THREE.ShaderMaterial({ ...cloudShader, uniforms: cloudUniforms, transparent: true, depthWrite: false })
@@ -338,7 +349,7 @@ export class World {
     this.bank = 0;
     this.prevTangent = new THREE.Vector3(0, 0, 1);
 
-    ship.scale.setScalar(0.62);
+    ship.scale.setScalar(SHIP_SCALE);
     this.scene.add(ship);
     this.ship = ship;
 
@@ -414,6 +425,17 @@ export class World {
     this.pulse.material.color.set(p.look.glow);
     this.pulseR = p.look.radius;
     this.pulseT = 0;
+    this.pulseFlat = false;
+  }
+
+  // Dust ring where the ship touches down
+  fireTouchdown(pos, normal, r, color) {
+    this.pulse.position.copy(pos);
+    this.pulse.lookAt(tmpV.copy(pos).add(normal));
+    this.pulse.material.color.set(color);
+    this.pulseR = r;
+    this.pulseT = 0;
+    this.pulseFlat = true;
   }
 
   updateWarp(warp, dt) {
@@ -499,6 +521,9 @@ export class World {
 
   flyTo(id, { first = false } = {}) {
     if (id === this.current && !this.travel) return Promise.resolve();
+    if (this.site) { if (this.site.props) this.retire(this.site.props); this.site = null; this.surf = null; }
+    this.camera.up.copy(UP);
+    this.ship.scale.setScalar(SHIP_SCALE);
     const to = this.planets.get(id);
     const startShip = this.ship.position.clone();
     const endShip = this.shipParking(id, 0);
@@ -530,12 +555,185 @@ export class World {
     return new Promise((resolve) => { this.travel.resolve = resolve; });
   }
 
+  // ---------- landing ----------
+
+  // A local frame on the planet surface at a continent: x east, y up, z north.
+  // Built from the planet's target orientation so it stays put while the planet settles.
+  siteFrame(p, index) {
+    const q = p.targetQuat;
+    const n = p.centers[index].clone().applyQuaternion(q);
+    const north = UP.clone().addScaledVector(n, -UP.dot(n));
+    if (north.lengthSq() < 1e-4) north.set(0, 0, 1).addScaledVector(n, -n.z);
+    north.normalize();
+    const east = new THREE.Vector3().crossVectors(n, north);
+    const qi = q.clone().invert();
+    const m = new THREE.Matrix4().makeBasis(east.applyQuaternion(qi), n.applyQuaternion(qi), north.applyQuaternion(qi));
+    m.setPosition(p.centers[index].clone().multiplyScalar(p.look.radius));
+    return m;
+  }
+
+  // Camera, look target and ship placement for a landed site, in world space for this frame
+  sitePose(out) {
+    const s = this.site, p = this.planets.get(s.id), R = p.look.radius;
+    p.body.updateMatrixWorld();
+    const m = tmpM.multiplyMatrices(p.body.matrixWorld, s.frame);
+    const at = (x, y, z, v) => v.set(x * R, y * R, z * R).applyMatrix4(m);
+    at(0, 0.075, -0.17, out.pos);
+    at(0, 0.02, 0.06, out.look);
+    out.up.setFromMatrixColumn(m, 1).normalize();
+    out.north.setFromMatrixColumn(m, 2).normalize();
+    at(0, 0.006, 0, out.ship);
+    out.shipQuat.setFromRotationMatrix(tmpM2.makeBasis(tmpV.setFromMatrixColumn(m, 0).normalize(), out.up, out.north));
+    out.shipScale = R * 0.011;
+    return out;
+  }
+
+  orbitPose(out) {
+    const v = this.viewPose(this.current);
+    out.pos.copy(v.pos);
+    out.look.copy(v.look);
+    out.up.copy(UP);
+    this.shipParking(this.current, this.parkT, out.ship);
+    const ahead = this.shipParking(this.current, this.parkT + 0.05, tmpV2);
+    out.shipQuat.setFromRotationMatrix(tmpM2.lookAt(ahead, out.ship, UP));
+    out.shipScale = SHIP_SCALE;
+    return out;
+  }
+
+  // Dive from orbit (or hop from another site) and set the ship down on a continent
+  land(id, index, info = {}) {
+    const p = this.planets.get(id);
+    if (!p || id !== this.current) return Promise.resolve();
+    if (this.site && this.site.index === index && !this.surf) return Promise.resolve();
+    this.focusContinent(id, index);
+    const hop = !!this.site;
+    const old = this.site;
+    this.site = { id, index, frame: this.siteFrame(p, index), props: null, biome: info.biome };
+    const props = buildSite(p.look.radius, info.biome, p.look.seed * 31 + index * 7.3, info);
+    props.group.applyMatrix4(this.site.frame);
+    props.group.userData.base = props.group.matrix.clone();
+    props.grow = 0;
+    p.body.add(props.group);
+    this.site.props = props;
+    if (old && old.props) this.retire(old.props);
+    return this.startSurf("land", hop ? p.look.radius * 0.9 : 0, hop ? 3.2 : 3.4);
+  }
+
+  takeOff() {
+    if (!this.site) return Promise.resolve();
+    const props = this.site.props;
+    const out = this.startSurf("orbit", 0, 2.2);
+    this.surf.leaving = props;
+    return out;
+  }
+
+  // Shrink a site's props into the ground and then free them
+  retire(props) {
+    if (props.retiring) return;
+    props.retiring = true;
+    (this.retired ||= []).push(props);
+  }
+
+  startSurf(kind, bump, duration) {
+    if (this.surf && this.surf.resolve) this.surf.resolve();
+    if (this.surf && this.surf.leaving) this.retire(this.surf.leaving);
+    this.surf = {
+      kind, bump, t: 0, duration: this.reducedMotion ? 0 : duration,
+      from: {
+        pos: this.camera.position.clone(), look: this.camLook.clone(), up: this.camera.up.clone(),
+        ship: this.ship.position.clone(), shipQuat: this.ship.quaternion.clone(), shipScale: this.ship.scale.x,
+      },
+    };
+    return new Promise((resolve) => { this.surf.resolve = resolve; });
+  }
+
+  // Interpolate between two points around the planet without cutting through it
+  arcLerp(a, b, w, center, bump, out) {
+    out.lerpVectors(a, b, w);
+    const ra = a.distanceTo(center), rb = b.distanceTo(center);
+    const r = ra + (rb - ra) * w + Math.sin(Math.PI * w) * bump;
+    tmpV.copy(out).sub(center);
+    if (tmpV.lengthSq() > 1e-6) out.copy(center).addScaledVector(tmpV.normalize(), r);
+    return out;
+  }
+
+  updateSurface(raw, dt, T) {
+    const p = this.planets.get(this.current);
+    const s = this.surf;
+    const pose = this.pose;
+    if (s) {
+      s.t = s.duration > 0 ? Math.min(s.t + Math.min(raw, 0.25) / s.duration, 1) : 1;
+      if (s.kind === "land") this.sitePose(pose); else this.orbitPose(pose);
+      const c = p.group.position;
+      // Camera dives first, the ship follows it down and settles
+      const wc = easeInOut(Math.min(s.t / (s.kind === "land" ? 0.72 : 0.8), 1));
+      const ws = s.kind === "land" ? easeOut(smooth(0.12, 1, s.t)) : easeInOut(s.t);
+      this.arcLerp(s.from.pos, pose.pos, wc, c, s.bump, this.camera.position);
+      this.camLook.lerpVectors(s.from.look, pose.look, wc);
+      this.camera.up.lerpVectors(s.from.up, pose.up, wc).normalize();
+      this.arcLerp(s.from.ship, pose.ship, ws, c, s.bump * 0.6, this.ship.position);
+      this.ship.quaternion.slerpQuaternions(s.from.shipQuat, pose.shipQuat, ws);
+      this.ship.scale.setScalar(THREE.MathUtils.lerp(s.from.shipScale, pose.shipScale, ws));
+      this.diveFov = Math.sin(Math.PI * wc) * 10;
+      if (this.site && this.site.props) this.site.props.grow = s.kind === "land" ? smooth(0.45, 0.95, s.t) : 1 - smooth(0, 0.5, s.t);
+      if (s.t >= 1) {
+        this.surf = null;
+        this.diveFov = 0;
+        if (s.kind === "land") {
+          if (!this.reducedMotion) this.fireTouchdown(pose.ship, pose.up, p.look.radius * 0.022, "#ffe2b0");
+        } else {
+          if (s.leaving) this.retire(s.leaving);
+          this.site = null;
+          this.camera.up.copy(UP);
+          this.ship.scale.setScalar(SHIP_SCALE);
+        }
+        s.resolve();
+      }
+    } else if (this.site) {
+      // Landed: camera rests above the pad with a slow sway, ship hums on its landing struts
+      this.sitePose(pose);
+      if (!this.reducedMotion) pose.pos.addScaledVector(pose.up, Math.sin(T * 0.5) * p.look.radius * 0.003);
+      this.camera.position.lerp(pose.pos, 1 - Math.exp(-dt * 6));
+      this.camLook.copy(pose.look);
+      this.camera.up.copy(pose.up);
+      this.ship.position.copy(pose.ship).addScaledVector(pose.up, this.reducedMotion ? 0 : Math.sin(T * 2) * p.look.radius * 0.0006);
+      this.ship.quaternion.copy(pose.shipQuat);
+      this.ship.scale.setScalar(pose.shipScale);
+    }
+    this.bank += (0 - this.bank) * (1 - Math.exp(-dt * 4));
+    if (this.site && this.site.boards) tickBoards(this.site.boards, T);
+  }
+
+  // Raise the current site's props out of the ground; sink retired ones
+  updateProps(dt) {
+    const grow = (props, k) => {
+      const g = props.group;
+      g.matrix.copy(g.userData.base).multiply(tmpM.makeScale(1, Math.max(k, 0.001), 1));
+      g.matrix.decompose(g.position, g.quaternion, g.scale);
+      g.visible = k > 0.002;
+    };
+    if (this.site && this.site.props) {
+      const pr = this.site.props;
+      pr.shown = this.reducedMotion ? pr.grow : (pr.shown ?? 0) + (pr.grow - (pr.shown ?? 0)) * (1 - Math.exp(-dt * 5));
+      grow(pr, easeOut(pr.shown));
+      this.site.boards = pr.boards;
+    }
+    if (this.retired) {
+      this.retired = this.retired.filter((pr) => {
+        pr.shown = (pr.shown ?? 1) - dt * 2;
+        if (pr.shown <= 0) { disposeSite(pr); return false; }
+        grow(pr, pr.shown);
+        return true;
+      });
+    }
+  }
+
   // ---------- interaction ----------
 
   setFrame(x, y, planetPx) { this.panelInset.x = x; this.panelInset.y = y; this.planetPx = planetPx; }
 
   pickContinent(clientX, clientY) {
-    if (!this.current || this.travel) return -1;
+    if (!this.current || this.travel || this.site) return -1;
     const p = this.planets.get(this.current);
     const rect = this.canvas.getBoundingClientRect();
     const ndc = new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
@@ -555,7 +753,7 @@ export class World {
   }
 
   dragPlanet(dx, dy) {
-    if (!this.current || this.travel) return;
+    if (!this.current || this.travel || this.site) return;
     const p = this.planets.get(this.current);
     const right = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 0);
     const up = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 1);
@@ -652,6 +850,8 @@ export class World {
         tr.resolve();
         if (this.onArrive) this.onArrive(tr.to);
       }
+    } else if (this.current && (this.site || this.surf)) {
+      this.updateSurface(raw, dt, T);
     } else if (this.current) {
       // Idle: ship circles the planet, camera breathes slightly
       this.parkT = (this.parkT || 0) + (this.reducedMotion ? 0 : dt);
@@ -671,7 +871,14 @@ export class World {
     }
 
     this.camera.lookAt(this.camLook);
-    this.camera.fov = 50 + warp * 18;
+    this.camera.fov = 50 + warp * 18 + this.diveFov;
+    this.updateProps(dt);
+    // Clouds thin out as the camera drops through them
+    if (this.current) {
+      const p = this.planets.get(this.current);
+      const d = this.camera.position.distanceTo(p.group.position) / p.look.radius;
+      p.cloudUniforms.uFade.value = smooth(1.25, 1.9, d);
+    }
 
     // Shift the projection so the planet sits beside the console, not under it
     const settle = this.current ? 1 : 0;
@@ -684,7 +891,7 @@ export class World {
     this.camera.updateProjectionMatrix();
 
     // Engine flame + dust react to speed
-    const thrust = this.travel ? 0.6 + warp * 1.6 : 0.35;
+    const thrust = this.travel ? 0.6 + warp * 1.6 : this.site && !this.surf ? 0.05 : 0.35;
     this.flames.forEach((f, i) => f.scale.setScalar(0.9 + thrust * 1.3 + Math.sin(T * 40 + i) * 0.08));
     this.dust.material.opacity = 0.15 + warp * 0.7;
     this.dust.position.copy(this.ship.position);
@@ -710,12 +917,13 @@ export class World {
       this.pulseT = Math.min(this.pulseT + dt / 1.4, 1);
       const e = 1 - Math.pow(1 - this.pulseT, 3);
       this.pulse.scale.setScalar(this.pulseR * (1.1 + e * 0.8));
-      this.pulse.material.opacity = (1 - this.pulseT) * 0.5;
-      this.pulse.lookAt(this.camera.position);
+      this.pulse.material.opacity = (1 - this.pulseT) * (this.pulseFlat ? 0.3 : 0.5);
+      if (!this.pulseFlat) this.pulse.lookAt(this.camera.position);
     }
     this.updateWarp(warp, dt);
     this.adaptQuality(raw);
 
+    this.trail.visible = !this.site || !!this.surf;
     this.updateTrail();
     this.renderer.render(this.scene, this.camera);
   }
