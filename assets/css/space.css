@@ -42,7 +42,7 @@ a:hover { color: #fff; }
 }
 .skip-link:focus { top: 12px; }
 
-#universe, #labels, #warp, #weather, #greet, .site-bar, .panel-controls, .dpad { display: none; }
+#universe, #labels, #warp, #weather, #greet, #take-off, .site-bar, .panel-controls, .dpad { display: none; }
 
 /* ---------- HUD pieces (shared) ---------- */
 .hud-brand { display: flex; align-items: center; gap: 12px; padding: 20px 24px; }
@@ -230,7 +230,6 @@ kbd { font: 12px var(--mono); border: 1px solid var(--line); border-bottom-width
 /* Orbit shows the planet brief; landing shows one continent */
 .space .site-bar { display: none; align-items: center; gap: 10px; margin: 0 0 10px; }
 .space.landed .site-bar { display: flex; }
-.space .site-bar .hud-btn { padding: 6px 12px; font-size: 11px; flex: none; }
 .space #site-path { font: 11px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .space.landed .planet-head, .space.landed .planet-brief { display: none; }
 .space.descending main { opacity: 0; transform: translateY(16px); pointer-events: none; }
@@ -239,6 +238,31 @@ kbd { font: 12px var(--mono); border: 1px solid var(--line); border-bottom-width
 .space.landed #labels, .space.descending #labels { opacity: 0; pointer-events: none; }
 .space #labels { transition: opacity 0.5s; }
 .space #weather { display: block; position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 5; pointer-events: none; }
+
+/* Take-off button: sits over the landing scene, below the ship */
+.space #take-off {
+  display: inline-flex; align-items: center; gap: 10px; position: fixed; z-index: 16;
+  left: var(--fx, 50%); bottom: 96px; transform: translateX(-50%);
+  font: 700 15px var(--font); letter-spacing: 0.04em; color: #001018; cursor: pointer;
+  padding: 12px 22px 12px 14px; border: 0; border-radius: 999px;
+  background: linear-gradient(180deg, #a5f3ff, #4fd6f5);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5) inset, 0 8px 30px rgba(79, 214, 245, 0.45);
+  opacity: 0; pointer-events: none; translate: 0 16px;
+  transition: opacity 0.4s ease, translate 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s, filter 0.2s;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.space.landed:not(.descending) #take-off { opacity: 1; pointer-events: auto; translate: 0 0; }
+.space #take-off:hover { filter: brightness(1.08); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6) inset, 0 10px 40px rgba(79, 214, 245, 0.7); }
+.space #take-off:active { transform: translateX(-50%) scale(0.95); }
+.launch-icon { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #001018; color: #6ee7ff; font-size: 12px; }
+.space #take-off kbd { font-size: 10px; color: #003040; border-color: rgba(0, 40, 60, 0.35); background: rgba(255, 255, 255, 0.35); }
+@media (prefers-reduced-motion: no-preference) {
+  .space.landed:not(.descending) #take-off::after {
+    content: ""; position: absolute; inset: -5px; border-radius: inherit; border: 2px solid rgba(110, 231, 255, 0.7);
+    animation: ping 2s ease-out infinite; pointer-events: none;
+  }
+}
+.space.kb #take-off { display: none; }
 
 /* Arrival greeting, centred over the planet */
 .space #greet {
@@ -340,6 +364,10 @@ kbd { font: 12px var(--mono); border: 1px solid var(--line); border-bottom-width
   .space #continent-count { font-size: 10px; }
 
   .space .dpad { display: grid; left: auto; right: 10px; --pad: 38px; top: auto; bottom: calc(var(--sheet-gap, 40vh) + 8px); transform: none; }
+  .space #take-off { left: 10px; transform: none; bottom: calc(var(--sheet-gap, 40vh) + 10px); font-size: 14px; padding: 9px 16px 9px 10px; gap: 8px; }
+  .space #take-off:active { transform: scale(0.95); }
+  .space #take-off kbd { display: none; }
+  .launch-icon { width: 22px; height: 22px; }
   .space .greeting { font-size: 14px; margin: 0 0 6px; }
   .space .planet-stats { grid-template-columns: repeat(5, 1fr); gap: 4px; margin: 0 0 8px; }
   .space .planet-stats div { padding: 4px 5px; border-radius: 9px; }
@@ -444,6 +472,8 @@ kbd { font: 12px var(--mono); border: 1px solid var(--line); border-bottom-width
   .space .sites a { padding: 4px 8px; }
   .space .greeting { font-size: 13px; }
   .space .site-read:nth-of-type(n+3) { display: none; }
+  .space #take-off { left: var(--fx, 25%); transform: translateX(-50%); top: 46px; bottom: auto; }
+  .space #take-off:active { transform: translateX(-50%) scale(0.95); }
 }
 
 /* ==========================================================

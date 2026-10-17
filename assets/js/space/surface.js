@@ -74,7 +74,7 @@ function windowTexture() {
 const BOARD_COLORS = ["#ff4fd8", "#4fe3ff", "#ffb84f"];
 
 function wrap(g, text, maxW, maxLines) {
-  const words = String(text).split(/\s+/);
+  const words = String(text).split(/[ \t\n]+/); // keeps non-breaking spaces together
   const lines = [];
   let line = "";
   for (const w of words) {

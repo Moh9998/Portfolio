@@ -812,7 +812,9 @@ export class World {
       p.cloudUniforms.uTime.value = T;
       p.clouds.rotation.y += dt * 0.01;
       if (p.id === this.current && !p.free) {
-        p.body.quaternion.slerp(p.targetQuat, 1 - Math.exp(-dt * 2.6));
+        // Near the ground the planet must settle in step with the landing, even on slow frames
+        const step = this.site ? Math.min(raw, 0.25) : dt;
+        p.body.quaternion.slerp(p.targetQuat, 1 - Math.exp(-step * 2.6));
       } else if (p.id !== this.current && !this.reducedMotion) {
         p.body.rotateY(dt * p.spin);
       }
