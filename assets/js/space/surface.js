@@ -175,9 +175,10 @@ export function tickBoards(boards, t) {
 function city(R, rand, info) {
   const g = new THREE.Group();
   const specs = [
-    { x: -0.055, z: 0.085, w: 0.075, pole: 0.022 },
-    { x: 0.06, z: 0.11, w: 0.075, pole: 0.03 },
-    { x: 0.0, z: 0.2, w: 0.12, pole: 0.08 },
+    // Left and right screens stand apart; the big one sits behind and above them, clear of both
+    { x: -0.085, z: 0.1, w: 0.075, pole: 0.022 },
+    { x: 0.085, z: 0.12, w: 0.075, pole: 0.026 },
+    { x: 0.0, z: 0.22, w: 0.11, pole: 0.072 },
   ];
   const boards = (info.boards || []).slice(0, 3).map((spec, i) => {
     const b = billboard(R, { ...spec, ...specs[i] }, i, rand);
@@ -376,24 +377,25 @@ function cityDetails(R, rand, g) {
     return { lift: R * 0.002 };
   }));
 
-  // Flying traffic on elliptical skyways above the city
-  const cars = Array.from({ length: 26 }, (_, i) => ({
-    r: R * (0.07 + rand() * 0.17), h: R * (0.035 + rand() * 0.06), speed: (0.08 + rand() * 0.12) * (i % 2 ? 1 : -1), phase: rand() * Math.PI * 2,
-  }));
+  // Flying traffic on straight skyways behind the billboards, so it never cuts across the screens
+  const lanes = [{ z: 0.28, h: 0.05 }, { z: 0.31, h: 0.075 }, { z: 0.34, h: 0.1 }, { z: 0.3, h: 0.125 }];
+  const span = R * 0.84;
+  const cars = Array.from({ length: 24 }, (_, i) => {
+    const lane = lanes[i % lanes.length];
+    return { z: R * lane.z, h: R * lane.h, dir: i % 2 ? 1 : -1, speed: R * (0.03 + rand() * 0.02), phase: rand() * span };
+  });
   const traffic = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), glow(0xffffff), cars.length);
   const palette = [new THREE.Color(0x4fe3ff), new THREE.Color(0xffb84f), new THREE.Color(0xff4fd8), new THREE.Color(0xffffff)];
   cars.forEach((_, i) => traffic.setColorAt(i, palette[i % palette.length]));
   g.add(traffic);
-  const cz = R * 0.17;
   return (t) => {
     const blink = Math.sin(t * 4) > 0.3 ? 1 : 0.15;
     blinkMat.opacity = blink;
     if (holo) { holo.rotation.set(Math.PI / 2 + Math.sin(t * 0.7) * 0.25, t * 0.8, 0); }
     cars.forEach((c, i) => {
-      const a = c.phase + t * c.speed;
-      const x = Math.cos(a) * c.r, z = cz + Math.sin(a) * c.r * 0.6;
+      const x = c.dir * ((((c.phase + t * c.speed) % span) + span) % span - span / 2), z = c.z;
       dummy.position.set(x, c.h + groundAt(R, x, z), z);
-      dummy.rotation.set(0, -Math.atan2(Math.cos(a) * 0.6 * Math.sign(c.speed), -Math.sin(a) * Math.sign(c.speed)), 0);
+      dummy.rotation.set(0, 0, 0);
       dummy.scale.set(R * 0.008, R * 0.0018, R * 0.003);
       dummy.updateMatrix();
       traffic.setMatrixAt(i, dummy.matrix);
