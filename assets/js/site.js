@@ -46,7 +46,7 @@
         len++;
         if (len >= roles[i].length) { deleting = true; typed.textContent = roles[i]; return setTimeout(tick, 1800); }
       }
-      typed.textContent = roles[i].slice(0, Math.max(len, 0)) || " ";
+      typed.textContent = roles[i].slice(0, Math.max(len, 0)) || "\u00a0";
       setTimeout(tick, deleting ? 45 : 85);
       return undefined;
     };
