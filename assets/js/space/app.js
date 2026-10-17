@@ -111,6 +111,7 @@ function showPlanet(planetId, index) {
   document.getElementById("panel-controls").hidden = false;
   document.title = `${p.continents[index].name} · ${p.name} · Mohammed Hussain`;
   document.getElementById("content").scrollTop = 0;
+  layout();
 }
 
 function go(planetId, index) {
@@ -187,13 +188,20 @@ function tickLabels() {
   requestAnimationFrame(tickLabels);
 }
 
+// Fit the planet into whatever space the console leaves free
 function layout() {
-  if (!world) return;
-  // Mirrors the console geometry in space.css (side panel on desktop, bottom sheet on phones)
+  if (!world || !root.classList.contains("space")) return;
   const w = window.innerWidth, h = window.innerHeight;
-  if (w > 820) world.setPanelInset((Math.min(420, w - 48) + 24) / 2, 0);
-  else if (w > h && h <= 500) world.setPanelInset((Math.min(360, w * 0.48) + 12) / 2, 0);
-  else world.setPanelInset(0, (h * 0.46 + 74) / 2 - 20);
+  const r = document.getElementById("content").getBoundingClientRect();
+  let free;
+  if (w > 820 && h > 500) free = { x0: 0, x1: r.left, y0: 70, y1: h - 80 };
+  else if (w > h) free = { x0: 0, x1: r.left, y0: 44, y1: h - 50 };
+  else free = { x0: 0, x1: w, y0: 56, y1: r.top };
+  const cx = (free.x0 + free.x1) / 2, cy = (free.y0 + free.y1) / 2;
+  const size = Math.max(110, Math.min(free.x1 - free.x0, free.y1 - free.y0) * (w > 820 && h > 500 ? 0.74 : 0.86));
+  world.setFrame(w / 2 - cx, h / 2 - cy, size);
+  root.style.setProperty("--sheet-top", r.top + "px");
+  root.classList.toggle("tight", free.y1 - free.y0 < 150);
 }
 
 function bindPointer() {
@@ -281,6 +289,7 @@ window.addEventListener("keydown", (e) => {
 });
 
 window.addEventListener("resize", layout);
+if (window.ResizeObserver) new ResizeObserver(layout).observe(document.getElementById("content"));
 
 toggle.addEventListener("click", () => {
   if (root.classList.contains("space")) { savePrefs("classic"); exitSpace(); }

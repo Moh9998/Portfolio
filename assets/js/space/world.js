@@ -87,6 +87,7 @@ export class World {
     this.travel = null;      // active flight
     this.viewOffset = { x: 0, y: 0, tx: 0, ty: 0 };
     this.panelInset = { x: 0, y: 0 };
+    this.planetPx = 0;
     this.onArrive = null;
 
     this.buildBackdrop();
@@ -294,9 +295,10 @@ export class World {
     const toSun = tmpV.copy(this.sunPos).sub(c).normalize();
     const side = tmpV2.crossVectors(toSun, UP).normalize();
     const dir = new THREE.Vector3().addScaledVector(toSun, 0.75).addScaledVector(side, 0.62).addScaledVector(UP, 0.28).normalize();
-    // Portrait screens need more distance to fit the planet's width
-    const fit = Math.max(1, 0.8 / this.camera.aspect);
-    out.pos.copy(c).addScaledVector(dir, p.look.radius * 3.6 * fit);
+    // Distance that makes the planet span planetPx on screen (the free space beside the console)
+    const tanHalf = Math.tan(THREE.MathUtils.degToRad(25));
+    const dist = this.planetPx ? (this.height * p.look.radius) / (tanHalf * this.planetPx) : p.look.radius * 3.6;
+    out.pos.copy(c).addScaledVector(dir, Math.max(dist, p.look.radius * 2.2));
     out.look.copy(c);
     return out;
   }
@@ -369,7 +371,7 @@ export class World {
 
   // ---------- interaction ----------
 
-  setPanelInset(x, y) { this.panelInset.x = x; this.panelInset.y = y; }
+  setFrame(x, y, planetPx) { this.panelInset.x = x; this.panelInset.y = y; this.planetPx = planetPx; }
 
   pickContinent(clientX, clientY) {
     if (!this.current || this.travel) return -1;
@@ -492,7 +494,8 @@ export class World {
       if (this.parkT > 0) this.ship.lookAt(tmpV.copy(this.ship.position).multiplyScalar(2).sub(prev));
       const pose = this.viewPose(this.current);
       const bob = this.reducedMotion ? 0 : Math.sin(T * 0.3) * 0.4;
-      this.camera.position.copy(pose.pos).addScaledVector(UP, bob);
+      pose.pos.addScaledVector(UP, bob);
+      this.camera.position.lerp(pose.pos, this.reducedMotion ? 1 : 1 - Math.exp(-dt * 4));
       this.camLook.copy(pose.look);
     } else {
       // Before the first flight: slow drift
