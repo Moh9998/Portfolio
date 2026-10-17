@@ -50,8 +50,8 @@ async function enterSpace() {
   root.classList.add("space", "booting");
   toggle.textContent = "Classic view";
   if (!world) {
-    const { World, PLANET_LOOKS } = await import("./world.js");
-    weather = await import("./weather.js");
+    const { World, PLANET_LOOKS } = await import("./world.js?v=dev");
+    weather = await import("./weather.js?v=dev");
     world = new World(document.getElementById("universe"), planets.map((p) => ({ id: p.id, continents: p.continents })), { reducedMotion });
     paintNav(PLANET_LOOKS);
     buildLabels(PLANET_LOOKS);
