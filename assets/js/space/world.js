@@ -794,6 +794,8 @@ export class World {
       pr.shown = this.reducedMotion ? pr.grow : (pr.shown ?? 0) + (pr.grow - (pr.shown ?? 0)) * (1 - Math.exp(-dt * 5));
       grow(pr, easeOut(pr.shown));
       this.site.boards = pr.boards;
+      // Traffic, fireflies, aurora and the like keep moving (held still for reduced motion)
+      if (pr.tick && pr.shown > 0.01) pr.tick(this.reducedMotion ? 0 : this.time);
     }
     if (this.retired) {
       this.retired = this.retired.filter((pr) => {
