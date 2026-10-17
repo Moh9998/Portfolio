@@ -41,7 +41,9 @@
 
   <canvas id="universe" aria-hidden="true"></canvas>
   <div id="labels" aria-hidden="true"></div>
+  <canvas id="weather" aria-hidden="true"></canvas>
   <div id="warp" aria-hidden="true"><span id="warp-text"></span></div>
+  <div id="greet" aria-live="polite"><span class="g1"></span><span class="g2"></span></div>
 
   <header class="hud-brand">
     <img src="assets/img/MyProfile.jpg" alt="" width="44" height="44">
@@ -74,22 +76,26 @@
   </div>
 
   <main id="content" tabindex="-1">
+    <div class="site-bar">
+      <button type="button" class="hud-btn" id="take-off">▲ Take off</button>
+      <span id="site-path"></span>
+    </div>
 
     <!-- ============ PLANET: HOME ============ -->
-    <section class="planet" id="home" data-name="Nova Baghdad" data-label="Home">
+    <section class="planet" id="home" data-name="Nova Baghdad" data-label="Home" data-greeting="Marhaba, traveller." data-temp="38" data-pressure="1.12" data-gravity="1.08" data-distance="0.70" data-day="26.4">
       <header class="planet-head">
         <p class="planet-kicker">Planet I · Home</p>
         <h2>Nova Baghdad</h2>
       </header>
 
-      <article class="continent" id="home-welcome" data-name="Welcome Shore">
+      <article class="continent" id="home-welcome" data-name="Welcome Shore" data-biome="city">
         <h3>Welcome aboard</h3>
         <p class="hero-name">Mohammed Hussain Abbas</p>
         <p class="hero-roles">I'm a <span class="typed" data-roles="Software Developer|Full Stack Developer|Game Developer|Game Designer|Software Designer">Software Developer</span></p>
-        <p>You are piloting a ship through my solar system. Every planet is a page of my portfolio and every continent on it is a section. Pick a planet below, or click a continent to land on it.</p>
+        <p>You are piloting a ship through my solar system. Every planet is a page of my portfolio and every continent on it is a section. Pick a planet below, then pick a continent to land on it.</p>
       </article>
 
-      <article class="continent" id="home-brief" data-name="Mission Brief">
+      <article class="continent" id="home-brief" data-name="Mission Brief" data-biome="desert">
         <h3>Mission brief</h3>
         <p>A software developer from Baghdad who builds web APIs, desktop tools and the occasional game world. I get the job done.</p>
         <ul class="stats">
@@ -99,26 +105,26 @@
         </ul>
       </article>
 
-      <article class="continent" id="home-manual" data-name="Flight Manual">
+      <article class="continent" id="home-manual" data-name="Flight Manual" data-biome="wilds">
         <h3>Flight manual</h3>
         <ul class="manual">
           <li><kbd>1</kbd>–<kbd>5</kbd> or <kbd>↑</kbd> <kbd>↓</kbd> warp between planets</li>
-          <li><kbd>←</kbd> <kbd>→</kbd> visit the next continent</li>
+          <li><kbd>←</kbd> <kbd>→</kbd> land on the next continent, <kbd>Esc</kbd> take off again</li>
           <li>On a phone, steer with the arrow pad: ▲ ▼ change planet, ◀ ▶ change continent</li>
-          <li>Drag the planet to spin it, tap a continent to land</li>
+          <li>Drag the planet to spin it, tap a continent to dive down and land</li>
           <li>Prefer reading? Use <em>Classic view</em> in the top right corner</li>
         </ul>
       </article>
     </section>
 
     <!-- ============ PLANET: ABOUT ============ -->
-    <section class="planet" id="about" data-name="Persona" data-label="About">
+    <section class="planet" id="about" data-name="Persona" data-label="About" data-greeting="Hello again, stranger." data-temp="21" data-pressure="0.94" data-gravity="0.86" data-distance="1.08" data-day="19.2">
       <header class="planet-head">
         <p class="planet-kicker">Planet II · About</p>
         <h2>Persona</h2>
       </header>
 
-      <article class="continent" id="about-profile" data-name="Profile Plateau">
+      <article class="continent" id="about-profile" data-name="Profile Plateau" data-biome="rainforest">
         <h3>Software Developer</h3>
         <div class="profile">
           <img src="assets/img/MyProfile.jpg" alt="Portrait of Mohammed Hussain" width="120" height="120" loading="lazy">
@@ -126,7 +132,7 @@
         </div>
       </article>
 
-      <article class="continent" id="about-vitals" data-name="Vital Signs">
+      <article class="continent" id="about-vitals" data-name="Vital Signs" data-biome="city">
         <h3>Vital signs</h3>
         <dl class="facts">
           <div><dt>Birthday</dt><dd>28 Nov 1998</dd></div>
@@ -139,48 +145,48 @@
         </dl>
       </article>
 
-      <article class="continent" id="about-creed" data-name="The Creed">
+      <article class="continent" id="about-creed" data-name="The Creed" data-biome="arctic">
         <h3>I get the job done</h3>
         <p>I enjoy working with teams to deliver high-quality projects on time and within budget. From database design to the last pixel of the interface, I like owning a problem until it is solved and shipped.</p>
       </article>
     </section>
 
     <!-- ============ PLANET: SKILLS ============ -->
-    <section class="planet" id="skills" data-name="Arsenal" data-label="Skills">
+    <section class="planet" id="skills" data-name="Arsenal" data-label="Skills" data-greeting="Greetings, engineer." data-temp="-4" data-pressure="1.60" data-gravity="1.37" data-distance="1.50" data-day="31.7">
       <header class="planet-head">
         <p class="planet-kicker">Planet III · Skills</p>
         <h2>Arsenal</h2>
       </header>
 
-      <article class="continent" id="skills-backend" data-name="Back-end Highlands">
+      <article class="continent" id="skills-backend" data-name="Back-end Highlands" data-biome="arctic">
         <h3>Back-end</h3>
         <ul class="chips">
           <li>C#</li><li>.NET Framework</li><li>.NET Core</li><li>ASP.NET</li><li>ASP.NET Core</li><li>API</li><li>MVC Architecture</li><li>Clean Architecture</li>
         </ul>
       </article>
 
-      <article class="continent" id="skills-frontend" data-name="Front-end Isles">
+      <article class="continent" id="skills-frontend" data-name="Front-end Isles" data-biome="rainforest">
         <h3>Front-end</h3>
         <ul class="chips">
           <li>HTML</li><li>CSS</li><li>JavaScript</li><li>React.js</li><li>Blazor</li><li>Three.js</li><li>Front-end</li>
         </ul>
       </article>
 
-      <article class="continent" id="skills-data" data-name="Data Basin">
+      <article class="continent" id="skills-data" data-name="Data Basin" data-biome="city">
         <h3>Data</h3>
         <ul class="chips">
           <li>SQL Server</li><li>PostgreSQL</li><li>NoSQL</li><li>Python</li>
         </ul>
       </article>
 
-      <article class="continent" id="skills-systems" data-name="Systems Steppe">
+      <article class="continent" id="skills-systems" data-name="Systems Steppe" data-biome="wilds">
         <h3>Systems &amp; security</h3>
         <ul class="chips">
           <li>Windows</li><li>Windows Services</li><li>WPF</li><li>ERP</li><li>Cloud Computing</li><li>JWT</li><li>Encryption / Hashing</li>
         </ul>
       </article>
 
-      <article class="continent" id="skills-games" data-name="Game Forge">
+      <article class="continent" id="skills-games" data-name="Game Forge" data-biome="desert">
         <h3>Games &amp; 3D</h3>
         <ul class="chips">
           <li>Unity</li><li>Unreal Engine</li><li>Blender</li>
@@ -189,18 +195,18 @@
     </section>
 
     <!-- ============ PLANET: RESUME ============ -->
-    <section class="planet" id="resume" data-name="Chronos" data-label="Resume">
+    <section class="planet" id="resume" data-name="Chronos" data-label="Resume" data-greeting="Welcome, time traveller." data-temp="-27" data-pressure="0.71" data-gravity="1.14" data-distance="1.92" data-day="42.0">
       <header class="planet-head">
         <p class="planet-kicker">Planet IV · Resume</p>
         <h2>Chronos</h2>
       </header>
 
-      <article class="continent" id="resume-summary" data-name="Summary Sands">
+      <article class="continent" id="resume-summary" data-name="Summary Sands" data-biome="desert">
         <h3>Summary</h3>
         <p>Highly motivated and results-oriented software developer with 4+ years of experience building dynamic and responsive web applications. Skilled in ASP.NET Core architecture and SQL Server, with a strong foundation in front-end technologies. Proven ability to collaborate within cross-functional teams to deliver high-quality projects.</p>
       </article>
 
-      <article class="continent" id="resume-education" data-name="Academy Atoll">
+      <article class="continent" id="resume-education" data-name="Academy Atoll" data-biome="rainforest">
         <h3>Education</h3>
         <div class="role">
           <h4>Bachelor Degree in Biotechnology</h4>
@@ -208,7 +214,7 @@
         </div>
       </article>
 
-      <article class="continent" id="resume-mubasher" data-name="Mubasher">
+      <article class="continent" id="resume-mubasher" data-name="Mubasher" data-biome="city">
         <h3>Software Developer</h3>
         <p class="when">Present · Mubasher (Switch)</p>
         <ul>
@@ -220,7 +226,7 @@
         </ul>
       </article>
 
-      <article class="continent" id="resume-nas" data-name="Nas Iraq">
+      <article class="continent" id="resume-nas" data-name="Nas Iraq" data-biome="city">
         <h3>Back-end Developer</h3>
         <p class="when">April 2024 – December 2024 · Nas Iraq Holding</p>
         <ul>
@@ -230,7 +236,7 @@
         </ul>
       </article>
 
-      <article class="continent" id="resume-ta3leem" data-name="Ta3leem">
+      <article class="continent" id="resume-ta3leem" data-name="Ta3leem" data-biome="wilds">
         <h3>Front-end Developer</h3>
         <p class="when">January 2023 – December 2023 · Ta3leem</p>
         <ul>
@@ -240,7 +246,7 @@
         </ul>
       </article>
 
-      <article class="continent" id="resume-goldstar" data-name="Gold Star">
+      <article class="continent" id="resume-goldstar" data-name="Gold Star" data-biome="desert">
         <h3>System Administrator</h3>
         <p class="when">November 2022 – June 2023 · Gold Star Lights</p>
         <ul>
@@ -249,7 +255,7 @@
         </ul>
       </article>
 
-      <article class="continent" id="resume-alhadi" data-name="Alhadi">
+      <article class="continent" id="resume-alhadi" data-name="Alhadi" data-biome="arctic">
         <h3>Programmer</h3>
         <p class="when">January 2022 – November 2022 · Alhadi Software Solutions</p>
         <ul>
@@ -262,13 +268,13 @@
     </section>
 
     <!-- ============ PLANET: CONTACT ============ -->
-    <section class="planet" id="contact" data-name="Beacon" data-label="Contact">
+    <section class="planet" id="contact" data-name="Beacon" data-label="Contact" data-greeting="Signal received, pilot." data-temp="-58" data-pressure="0.42" data-gravity="0.93" data-distance="2.32" data-day="22.5">
       <header class="planet-head">
         <p class="planet-kicker">Planet V · Contact</p>
         <h2>Beacon</h2>
       </header>
 
-      <article class="continent" id="contact-coordinates" data-name="Coordinates">
+      <article class="continent" id="contact-coordinates" data-name="Coordinates" data-biome="arctic">
         <h3>Coordinates</h3>
         <p>Feel free to contact me at any time.</p>
         <dl class="facts">
@@ -278,7 +284,7 @@
         </dl>
       </article>
 
-      <article class="continent" id="contact-transmit" data-name="Transmission Tower">
+      <article class="continent" id="contact-transmit" data-name="Transmission Tower" data-biome="city">
         <h3>Send a transmission</h3>
         <form id="contact-form" class="contact-form">
           <label>Your name <input type="text" name="name" required autocomplete="name"></label>
@@ -290,7 +296,7 @@
         </form>
       </article>
 
-      <article class="continent" id="contact-network" data-name="Network Nebula">
+      <article class="continent" id="contact-network" data-name="Network Nebula" data-biome="rainforest">
         <h3>Network</h3>
         <ul class="links">
           <li><a href="https://github.com/Moh9998" rel="noopener" target="_blank">GitHub · Moh9998</a></li>
