@@ -1,7 +1,7 @@
 // The solar system: sun, planets with continents, the ship and the camera choreography.
 import * as THREE from "three";
-import { planetShader, cloudShader, atmosphereShader, sunShader, nebulaShader, MAX_CONTINENTS } from "./shaders.js";
-import { BIOME_KIND, BIOME_TINT, buildSite, disposeSite, tickBoards } from "./surface.js";
+import { planetShader, cloudShader, atmosphereShader, sunShader, nebulaShader, MAX_CONTINENTS } from "./shaders.js?v=dev";
+import { BIOME_KIND, BIOME_TINT, buildSite, disposeSite, tickBoards } from "./surface.js?v=dev";
 
 // Visual identity of each planet. Content (names, continents) comes from the DOM.
 export const PLANET_LOOKS = {
