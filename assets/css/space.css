@@ -42,7 +42,7 @@ a:hover { color: #fff; }
 }
 .skip-link:focus { top: 12px; }
 
-#universe, #labels, #warp, .panel-controls { display: none; }
+#universe, #labels, #warp, .panel-controls, .dpad { display: none; }
 
 /* ---------- HUD pieces (shared) ---------- */
 .hud-brand { display: flex; align-items: center; gap: 12px; padding: 20px 24px; }
@@ -232,4 +232,40 @@ kbd { font: 12px var(--mono); border: 1px solid var(--line); border-bottom-width
   .space .system-nav .plabel { display: block; font: 600 12px var(--font); text-transform: none; letter-spacing: 0; line-height: 1.2; }
   .space .system-nav a { padding: 8px 8px 8px 18px; }
   .space .system-nav .dot { left: 6px; width: 7px; height: 7px; }
+}
+
+/* On-screen arrow pad: steering for touch screens */
+@media (pointer: coarse), (max-width: 820px) {
+  .space .dpad {
+    display: grid; position: fixed; z-index: 18; right: 14px;
+    bottom: calc(74px + 46vh + 14px);
+    grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(3, 44px); gap: 2px;
+    transition: opacity 0.3s;
+  }
+  .space .dpad button {
+    font-size: 15px; color: var(--text); background: rgba(12, 16, 40, 0.8);
+    border: 1px solid var(--line); border-radius: 12px; cursor: pointer;
+    backdrop-filter: blur(8px); touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+    transition: transform 0.1s, background 0.15s;
+  }
+  .space .dpad button:active, .space .dpad button.pressed { background: var(--accent); color: #001018; transform: scale(0.92); }
+  .space .dpad [data-steer="up"] { grid-column: 2; grid-row: 1; }
+  .space .dpad [data-steer="left"] { grid-column: 1; grid-row: 2; }
+  .space .dpad-core { grid-column: 2; grid-row: 2; border-radius: 50%; margin: 10px; border: 1px solid var(--line); background: radial-gradient(circle, rgba(110, 231, 255, 0.35), transparent 70%); }
+  .space .dpad [data-steer="right"] { grid-column: 3; grid-row: 2; }
+  .space .dpad [data-steer="down"] { grid-column: 2; grid-row: 3; }
+  .space.traveling .dpad { opacity: 0.45; }
+  .space .label { padding: 6px 11px 6px 22px; }
+}
+/* Touch screens wider than a phone keep the side console, so the pad sits bottom left */
+@media (pointer: coarse) and (min-width: 821px) {
+  .space .dpad { right: auto; left: 24px; bottom: 96px; grid-template-columns: repeat(3, 52px); grid-template-rows: repeat(3, 52px); }
+}
+/* Landscape phones: console on the right, pad bottom left */
+@media (max-width: 920px) and (max-height: 500px) and (orientation: landscape) {
+  .space .system-nav { bottom: 8px; }
+  .space .system-nav a { padding-top: 5px; padding-bottom: 5px; }
+  .space main { left: auto; right: 12px; top: 64px; bottom: 72px; width: min(360px, 48vw); max-height: none; }
+  .space .dpad { right: auto; left: 12px; bottom: 72px; grid-template-columns: repeat(3, 38px); grid-template-rows: repeat(3, 38px); }
+  .space .hud-brand .brand-role { display: none; }
 }

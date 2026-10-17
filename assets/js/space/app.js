@@ -192,6 +192,7 @@ function layout() {
   // Mirrors the console geometry in space.css (side panel on desktop, bottom sheet on phones)
   const w = window.innerWidth, h = window.innerHeight;
   if (w > 820) world.setPanelInset((Math.min(420, w - 48) + 24) / 2, 0);
+  else if (w > h && h <= 500) world.setPanelInset((Math.min(360, w * 0.48) + 12) / 2, 0);
   else world.setPanelInset(0, (h * 0.46 + 74) / 2 - 20);
 }
 
@@ -232,6 +233,15 @@ function bindPointer() {
 
 // ---------- wiring ----------
 
+// On-screen arrows mirror the keyboard: up/down change planet, left/right change continent
+const steer = { up: () => stepPlanet(-1), down: () => stepPlanet(1), left: () => step(-1), right: () => step(1) };
+document.querySelectorAll("#dpad [data-steer]").forEach((b) => {
+  b.addEventListener("click", () => {
+    steer[b.dataset.steer]();
+    if (navigator.vibrate) navigator.vibrate(8);
+  });
+});
+
 document.getElementById("prev-continent").addEventListener("click", () => step(-1));
 document.getElementById("next-continent").addEventListener("click", () => step(1));
 
@@ -257,6 +267,12 @@ window.addEventListener("keydown", (e) => {
   if (!root.classList.contains("space")) return;
   if (e.target.closest("input, textarea, select, [contenteditable]")) return;
   if (e.altKey || e.ctrlKey || e.metaKey) return;
+  const pad = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" }[e.key];
+  if (pad) {
+    const b = document.querySelector(`#dpad [data-steer="${pad}"]`);
+    b.classList.add("pressed");
+    setTimeout(() => b.classList.remove("pressed"), 150);
+  }
   if (e.key === "ArrowRight") { e.preventDefault(); step(1); }
   else if (e.key === "ArrowLeft") { e.preventDefault(); step(-1); }
   else if (e.key === "ArrowDown") { e.preventDefault(); stepPlanet(1); }

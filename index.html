@@ -65,6 +65,14 @@
     </ol>
   </nav>
 
+  <div class="dpad" id="dpad" role="group" aria-label="Ship controls">
+    <button type="button" data-steer="up" aria-label="Previous planet">▲</button>
+    <button type="button" data-steer="left" aria-label="Previous continent">◀</button>
+    <span class="dpad-core" aria-hidden="true"></span>
+    <button type="button" data-steer="right" aria-label="Next continent">▶</button>
+    <button type="button" data-steer="down" aria-label="Next planet">▼</button>
+  </div>
+
   <main id="content" tabindex="-1">
 
     <!-- ============ PLANET: HOME ============ -->
@@ -96,7 +104,8 @@
         <ul class="manual">
           <li><kbd>1</kbd>–<kbd>5</kbd> or <kbd>↑</kbd> <kbd>↓</kbd> warp between planets</li>
           <li><kbd>←</kbd> <kbd>→</kbd> visit the next continent</li>
-          <li>Drag the planet to spin it, click a continent to land</li>
+          <li>On a phone, steer with the arrow pad: ▲ ▼ change planet, ◀ ▶ change continent</li>
+          <li>Drag the planet to spin it, tap a continent to land</li>
           <li>Prefer reading? Use <em>Classic view</em> in the top right corner</li>
         </ul>
       </article>
